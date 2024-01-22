@@ -15,4 +15,6 @@ Subcommands:
    set_bash_prompt    Set Bash prompt.
       set_hostname    Set hostname.
           set_motd    Set MotD.
+         setup_ssh    Set up SSH.
+    create_cluster    Create the cluster.
 ```
