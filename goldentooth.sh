@@ -84,6 +84,26 @@ function goldentooth:set_motd() {
   popd > /dev/null;
 }
 
+# Set up SSH.
+function goldentooth:setup_ssh() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
+  local host_expression="${1}";
+  local args="${@:2}";
+  pushd "${ansible_path}" > /dev/null;
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.setup_ssh' "${args}";
+  popd > /dev/null;
+}
+
+# Create the cluster.
+function goldentooth:create_cluster() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
+  local host_expression="${1}";
+  local args="${@:2}";
+  pushd "${ansible_path}" > /dev/null;
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.create_cluster' -e 'ansible_user=root' "${args}";
+  popd > /dev/null;
+}
+
 # Show usage information.
 function goldentooth:usage() {
   local subcommand_width='18';
@@ -98,6 +118,8 @@ function goldentooth:usage() {
   printf "${subcommand_column}" 'set_bash_prompt' 'Set Bash prompt.';
   printf "${subcommand_column}" 'set_hostname' 'Set hostname.';
   printf "${subcommand_column}" 'set_motd' 'Set MotD.';
+  printf "${subcommand_column}" 'setup_ssh' 'Set up SSH.';
+  printf "${subcommand_column}" 'create_cluster' 'Create the cluster.';
   echo '';
 }
 
