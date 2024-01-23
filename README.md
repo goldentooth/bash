@@ -12,9 +12,11 @@ Subcommands:
       ansible_task    Run a specified Ansible task.
         edit_vault    Edit the vault.
       autocomplete    Output autocomplete information.
+      raspi_config    Run raspi-config.
    set_bash_prompt    Set Bash prompt.
       set_hostname    Set hostname.
           set_motd    Set MotD.
          setup_ssh    Set up SSH.
+        setup_host    Setup everything but the cluster.
     create_cluster    Create the cluster.
 ```
