@@ -13,6 +13,7 @@ Subcommands:
         edit_vault    Edit the vault.
       autocomplete    Output autocomplete information.
       raspi_config    Run raspi-config.
+  top500_benchmark    Run the Top-500 benchmark.
    set_bash_prompt    Set Bash prompt.
       set_hostname    Set hostname.
           set_motd    Set MotD.

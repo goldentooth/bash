@@ -124,6 +124,16 @@ function goldentooth:setup_host() {
   popd > /dev/null;
 }
 
+# Run the Top-500 benchmark on the cluster.
+function goldentooth:top500_benchmark() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
+  local host_expression="${1}";
+  local args="${@:2}";
+  pushd "${ansible_path}" > /dev/null;
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.top500_benchmark' "${args}";
+  popd > /dev/null;
+}
+
 # Show usage information.
 function goldentooth:usage() {
   local subcommand_width='18';
@@ -136,6 +146,7 @@ function goldentooth:usage() {
   printf "${subcommand_column}" 'edit_vault' 'Edit the vault.';
   printf "${subcommand_column}" 'autocomplete' 'Output autocomplete information.';
   printf "${subcommand_column}" 'raspi_config' 'Run raspi-config.';
+  printf "${subcommand_column}" 'top500_benchmark' 'Run the Top-500 benchmark.';
   printf "${subcommand_column}" 'set_bash_prompt' 'Set Bash prompt.';
   printf "${subcommand_column}" 'set_hostname' 'Set hostname.';
   printf "${subcommand_column}" 'set_motd' 'Set MotD.';
