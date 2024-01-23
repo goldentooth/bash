@@ -120,7 +120,7 @@ function goldentooth:create_cluster() {
   local host_expression="${1}";
   local args="${@:2}";
   pushd "${ansible_path}" > /dev/null;
-  goldentooth:ansible_role "${host_expression}" 'goldentooth.create_cluster' -e 'ansible_user=root' "${args}";
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.create_cluster' "${args}";
   popd > /dev/null;
 }
 
