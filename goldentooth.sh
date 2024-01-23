@@ -54,6 +54,16 @@ END
   popd > /dev/null;
 }
 
+# Run raspi-config.
+function goldentooth:raspi_config() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
+  local host_expression="${1}";
+  local args="${@:2}";
+  pushd "${ansible_path}" > /dev/null;
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.raspi_config' "${args}";
+  popd > /dev/null;
+}
+
 # Set the Bash Prompt on a specified node or group.
 function goldentooth:set_bash_prompt() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
@@ -115,6 +125,7 @@ function goldentooth:usage() {
   printf "${subcommand_column}" 'ansible_task' 'Run a specified Ansible task.';
   printf "${subcommand_column}" 'edit_vault' 'Edit the vault.';
   printf "${subcommand_column}" 'autocomplete' 'Output autocomplete information.';
+  printf "${subcommand_column}" 'raspi_config' 'Run raspi-config.';
   printf "${subcommand_column}" 'set_bash_prompt' 'Set Bash prompt.';
   printf "${subcommand_column}" 'set_hostname' 'Set hostname.';
   printf "${subcommand_column}" 'set_motd' 'Set MotD.';
