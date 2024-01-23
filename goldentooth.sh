@@ -104,16 +104,6 @@ function goldentooth:setup_ssh() {
   popd > /dev/null;
 }
 
-# Setup security settings.
-function goldentooth:setup_security() {
-  : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
-  local host_expression="${1}";
-  local args="${@:2}";
-  pushd "${ansible_path}" > /dev/null;
-  goldentooth:ansible_role "${host_expression}" 'goldentooth.setup_security' "${args}";
-  popd > /dev/null;
-}
-
 # Create the cluster.
 function goldentooth:create_cluster() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
@@ -130,7 +120,7 @@ function goldentooth:setup_host() {
   local host_expression="${1}";
   local args="${@:2}";
   pushd "${ansible_path}" > /dev/null;
-  goldentooth:ansible_role "${host_expression}" 'goldentooth.setup_host' "${args}";
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.setup_host' -e  "${args}";
   popd > /dev/null;
 }
 
@@ -150,7 +140,6 @@ function goldentooth:usage() {
   printf "${subcommand_column}" 'set_hostname' 'Set hostname.';
   printf "${subcommand_column}" 'set_motd' 'Set MotD.';
   printf "${subcommand_column}" 'setup_ssh' 'Setup SSH.';
-  printf "${subcommand_column}" 'setup_security' 'Apply some security settings.';
   printf "${subcommand_column}" 'setup_host' 'Setup everything but the cluster.';
   printf "${subcommand_column}" 'create_cluster' 'Create the cluster.';
   echo '';
