@@ -140,8 +140,8 @@ function goldentooth:usage() {
   printf "${subcommand_column}" 'set_hostname' 'Set hostname.';
   printf "${subcommand_column}" 'set_motd' 'Set MotD.';
   printf "${subcommand_column}" 'setup_ssh' 'Set up SSH.';
-  printf "${subcommand_column}" 'create_cluster' 'Create the cluster.';
   printf "${subcommand_column}" 'setup' 'Setup everything.';
+  printf "${subcommand_column}" 'create_cluster' 'Create the cluster.';
   echo '';
 }
 
