@@ -177,12 +177,12 @@ function hellholt:autocomplete() {
 
 # Primary function.
 function goldentooth() {
-  local subcommand="${1}";
+  local subcommand="${1:-usage}";
   export OBJC_DISABLE_INITIALIZE_FORK_SAFETY='YES';
   export K8S_AUTH_KUBECONFIG='~/.kube/config';
   shift;
   if type "goldentooth:${subcommand%:*}" > /dev/null 2>&1; then
-    host_expression="${1}";
+    host_expression="${1:-all}";
     shift;
     "goldentooth:${subcommand%:*}" "${host_expression}" "${@:1}";
   else
