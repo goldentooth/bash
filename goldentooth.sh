@@ -54,7 +54,7 @@ END
   popd > /dev/null;
 }
 
-# Run raspi-config and edit boot.txt.
+# Run raspi-config and edit config.txt.
 function goldentooth:configure() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
   local host_expression="${1}";
@@ -143,7 +143,7 @@ declare -A subcommands=(
   [ansible_task]='Run a specified Ansible task.'
   [edit_vault]='Edit the vault.'
   [autocomplete]='Output autocomplete information.'
-  [configure]='Configure the hosts (via e.g. `raspi-config`, `boot.txt`).'
+  [configure]='Configure the hosts (via e.g. `raspi-config`, `config.txt`).'
   [set_bash_prompt]='Set Bash prompt.'
   [set_hostname]='Set hostname.'
   [set_motd]='Set MotD.'
