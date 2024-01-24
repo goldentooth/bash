@@ -134,6 +134,25 @@ function goldentooth:reset_cluster() {
   popd > /dev/null;
 }
 
+# Define associative array for subcommands and their descriptions.
+#
+# Associative arrays are a feature of Bash 4.0. If you're using a Mac, you'll
+# need to install Bash 4.0+ with Homebrew.
+declare -A subcommands=(
+  [usage]='Show usage information.'
+  [ansible_task]='Run a specified Ansible task.'
+  [edit_vault]='Edit the vault.'
+  [autocomplete]='Output autocomplete information.'
+  [raspi_config]='Run raspi-config.'
+  [set_bash_prompt]='Set Bash prompt.'
+  [set_hostname]='Set hostname.'
+  [set_motd]='Set MotD.'
+  [setup_security]='Apply some security settings.'
+  [prepare_cluster]='Setup everything but Kubernetes.'
+  [create_cluster]='Create the cluster.'
+  [reset_cluster]='Reset the cluster.'
+)
+
 # Show usage information.
 function goldentooth:usage() {
   local subcommand_width='18';
@@ -141,38 +160,16 @@ function goldentooth:usage() {
   echo 'Usage: goldentooth <subcommand> [arguments...]';
   echo '';
   echo 'Subcommands: ';
-  printf "${subcommand_column}" 'usage' 'Show usage information.';
-  printf "${subcommand_column}" 'ansible_task' 'Run a specified Ansible task.';
-  printf "${subcommand_column}" 'edit_vault' 'Edit the vault.';
-  printf "${subcommand_column}" 'autocomplete' 'Output autocomplete information.';
-  printf "${subcommand_column}" 'raspi_config' 'Run raspi-config.';
-  printf "${subcommand_column}" 'set_bash_prompt' 'Set Bash prompt.';
-  printf "${subcommand_column}" 'set_hostname' 'Set hostname.';
-  printf "${subcommand_column}" 'set_motd' 'Set MotD.';
-  printf "${subcommand_column}" 'setup_security' 'Apply some security settings.';
-  printf "${subcommand_column}" 'prepare_cluster' 'Setup everything but Kubernetes.';
-  printf "${subcommand_column}" 'create_cluster' 'Create the cluster.';
-  printf "${subcommand_column}" 'reset_cluster' 'Reset the cluster.';
+  for cmd in "${!subcommands[@]}"; do
+    printf "$subcommand_column" "$cmd" "${subcommands[$cmd]}"
+  done
   echo '';
 }
 
-general_subcommands=(
-  'usage'
-  'ansible_task'
-  'edit_vault'
-  'autocomplete'
-)
-
 # Print autocomplete script.
-function hellholt:autocomplete() {
-  local old_ifs="${IFS}";
-  IFS=\ ;
-  local all_subcommands=(
-    "$(echo "${general_subcommands[*]}")"
-  )
-  local subcommands_string="$(echo "${all_subcommands[*]}")";
-  echo complete -W "'"${subcommands_string}"'" hellholt;
-  IFS="${old_ifs}";
+function goldentooth:autocomplete() {
+  local subcommands_string="${!subcommands[@]}"
+  echo "complete -W '$subcommands_string' goldentooth"
 }
 
 # Primary function.
