@@ -17,6 +17,7 @@ Subcommands:
       set_hostname    Set hostname.
           set_motd    Set MotD.
     setup_security    Apply some security settings.
-        setup_host    Setup everything but the cluster.
+   prepare_cluster    Setup everything but Kubernetes.
     create_cluster    Create the cluster.
+     reset_cluster    Reset the cluster.
 ```

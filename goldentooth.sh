@@ -114,13 +114,23 @@ function goldentooth:create_cluster() {
   popd > /dev/null;
 }
 
-# Setup everything but cluster.
-function goldentooth:setup_host() {
+# Prepare the cluster but don't actually setup Kubernetes.
+function goldentooth:prepare_cluster() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
   local host_expression="${1}";
   local args="${@:2}";
   pushd "${ansible_path}" > /dev/null;
-  goldentooth:ansible_role "${host_expression}" 'goldentooth.setup_host' "${args}";
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.prepare_cluster' "${args}";
+  popd > /dev/null;
+}
+
+# Reset the cluster.
+function goldentooth:reset_cluster() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
+  local host_expression="${1}";
+  local args="${@:2}";
+  pushd "${ansible_path}" > /dev/null;
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.reset_cluster' "${args}";
   popd > /dev/null;
 }
 
@@ -140,8 +150,9 @@ function goldentooth:usage() {
   printf "${subcommand_column}" 'set_hostname' 'Set hostname.';
   printf "${subcommand_column}" 'set_motd' 'Set MotD.';
   printf "${subcommand_column}" 'setup_security' 'Apply some security settings.';
-  printf "${subcommand_column}" 'setup_host' 'Setup everything but the cluster.';
+  printf "${subcommand_column}" 'prepare_cluster' 'Setup everything but Kubernetes.';
   printf "${subcommand_column}" 'create_cluster' 'Create the cluster.';
+  printf "${subcommand_column}" 'reset_cluster' 'Reset the cluster.';
   echo '';
 }
 
