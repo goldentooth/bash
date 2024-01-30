@@ -54,7 +54,14 @@ END
   popd > /dev/null;
 }
 
-# Run raspi-config and edit config.txt.
+# Install Ansible dependencies.
+function goldentooth:install() {
+  pushd "${ansible_path}" > /dev/null;
+  ansible-galaxy install -r requirements.yaml;
+  popd > /dev/null;
+}
+
+# Configure Raspberry Pis.
 function goldentooth:configure() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
   local host_expression="${1}";
@@ -140,6 +147,7 @@ function goldentooth:reset_cluster() {
 # need to install Bash 4.0+ with Homebrew.
 declare -A subcommands=(
   [usage]='Show usage information.'
+  [install]='Install dependencies.'
   [ansible_task]='Run a specified Ansible task.'
   [edit_vault]='Edit the vault.'
   [autocomplete]='Output autocomplete information.'
