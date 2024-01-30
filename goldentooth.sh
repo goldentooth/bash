@@ -57,7 +57,14 @@ END
 # Install Ansible dependencies.
 function goldentooth:install() {
   pushd "${ansible_path}" > /dev/null;
-  ansible-galaxy install -r requirements.yaml;
+  ansible-galaxy install -r requirements.yml;
+  popd > /dev/null;
+}
+
+# Lint all roles.
+function goldentooth:lint() {
+  pushd "${ansible_path}" > /dev/null;
+  ansible-lint;
   popd > /dev/null;
 }
 
@@ -148,6 +155,7 @@ function goldentooth:reset_cluster() {
 declare -A subcommands=(
   [usage]='Show usage information.'
   [install]='Install dependencies.'
+  [lint]='Lint all roles.'
   [ansible_task]='Run a specified Ansible task.'
   [edit_vault]='Edit the vault.'
   [autocomplete]='Output autocomplete information.'
