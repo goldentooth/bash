@@ -118,6 +118,16 @@ function goldentooth:setup_security() {
   popd > /dev/null;
 }
 
+# Setup the load balancer.
+function goldentooth:setup_load_balancer() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
+  local host_expression="${1}";
+  local args="${@:2}";
+  pushd "${ansible_path}" > /dev/null;
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.setup_load_balancer' "${args}";
+  popd > /dev/null;
+}
+
 # Create the cluster.
 function goldentooth:create_cluster() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
@@ -164,6 +174,7 @@ declare -A subcommands=(
   [set_hostname]='Set hostname.'
   [set_motd]='Set MotD.'
   [setup_security]='Apply some security settings.'
+  [setup_load_balancer]='Setup the load balancer.'
   [prepare_cluster]='Setup everything but Kubernetes.'
   [create_cluster]='Create the cluster.'
   [reset_cluster]='Reset the cluster.'
@@ -171,7 +182,7 @@ declare -A subcommands=(
 
 # Show usage information.
 function goldentooth:usage() {
-  local subcommand_width='18';
+  local subcommand_width='24';
   local subcommand_column="%${subcommand_width}s    %s\n";
   echo 'Usage: goldentooth <subcommand> [arguments...]';
   echo '';
