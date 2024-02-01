@@ -128,6 +128,16 @@ function goldentooth:setup_load_balancer() {
   popd > /dev/null;
 }
 
+# Setup the Kubernetes repository.
+function goldentooth:setup_k8s_repo() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
+  local host_expression="${1}";
+  local args="${@:2}";
+  pushd "${ansible_path}" > /dev/null;
+  goldentooth:ansible_role "${host_expression}" 'goldentooth.setup_k8s_repo' "${args}";
+  popd > /dev/null;
+}
+
 # Create the cluster.
 function goldentooth:create_cluster() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOSTNAME|GROUP>"}";
@@ -174,6 +184,7 @@ declare -A subcommands=(
   [set_hostname]='Set hostname.'
   [set_motd]='Set MotD.'
   [setup_security]='Apply some security settings.'
+  [setup_k8s_repo]='Setup the Kubernetes repository.'
   [setup_load_balancer]='Setup the load balancer.'
   [prepare_cluster]='Setup everything but Kubernetes.'
   [create_cluster]='Create the cluster.'

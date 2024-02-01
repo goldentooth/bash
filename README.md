@@ -10,6 +10,7 @@ Usage: goldentooth <subcommand> [arguments...]
 Subcommands:
               edit_vault    Edit the vault.
      setup_load_balancer    Setup the load balancer.
+          setup_k8s_repo    Setup the Kubernetes repository.
            reset_cluster    Reset the cluster.
           create_cluster    Create the cluster.
                    usage    Show usage information.
