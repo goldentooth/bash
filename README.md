@@ -18,6 +18,7 @@ Subcommands:
           setup_security    Apply some security settings.
             ansible_task    Run a specified Ansible task.
             set_hostname    Set hostname.
+            setup_k8s_cp    Setup the Kubernetes control plane.
                  install    Install dependencies.
                configure    Configure the hosts (via e.g. `raspi-config`, `config.txt`).
          set_bash_prompt    Set Bash prompt.
