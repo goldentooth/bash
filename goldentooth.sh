@@ -31,7 +31,7 @@ function goldentooth:ansible_playbook() {
   : "${2?"Usage: ${FUNCNAME[0]} <PLAYBOOK>"}";
   local playbook_expression="${1}";
   pushd "${ansible_path}" > /dev/null;
-  ansible-playbook "${playbook_expression}";
+  ansible-playbook "playbooks/${playbook_expression}.yaml";
   popd > /dev/null;
 }
 
