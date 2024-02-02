@@ -37,16 +37,23 @@ function goldentooth:ansible_playbook() {
 
 # Display usage information.
 function goldentooth:usage() {
+  local width=24;
   echo 'Usage: goldentooth <subcommand> [arguments...]';
   echo '';
   echo 'Subcommands:';
+  printf "%${width}s %s\n" "autocomplete" "Enable bash autocompletion.";
+  printf "%${width}s %s\n" "install" "Install Ansible dependencies.";
+  printf "%${width}s %s\n" "lint" "Lint all roles.";
+  printf "%${width}s %s\n" "edit_vault" "Edit the vault.";
+  printf "%${width}s %s\n" "ansible_playbook" "Run a specified Ansible playbook.";
+  printf "%${width}s %s\n" "usage" "Display usage information.";
   pushd "${ansible_path}" > /dev/null;
   for playbook in playbooks/*.yaml; do
     playbook_name="$(basename "${playbook}" '.yaml')";
     first_line="$(head -n 1 "${playbook}")";
     description="$(echo "${first_line}" | sed -n 's/^# Description: \(.*\)/\1/p')";
     if [[ -n $description ]]; then
-      printf "%24s %s\n" "${playbook_name}" "${description}";
+      printf "%${width}s %s\n" "${playbook_name}" "${description}";
     fi
   done;
   popd > /dev/null;
@@ -62,7 +69,7 @@ function goldentooth:autocomplete() {
     subcommands_string="${subcommands_string} ${playbook_name}";
   done;
   popd > /dev/null;
-  echo "complete -W '$subcommands_string' goldentooth";
+  echo "complete -W 'autocomplete usage $subcommands_string' goldentooth";
 }
 
 # Primary function.
