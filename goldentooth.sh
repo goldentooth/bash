@@ -6,9 +6,6 @@ ansible_path="${HELLHOLT_ANSIBLE_PATH:-${HOME}/Projects/cluster}";
 function goldentooth:install() {
   pushd "${ansible_path}" > /dev/null;
   ansible-galaxy install -r requirements.yml;
-  pushd kubespray > /dev/null;
-  pip3 install -r requirements.txt;
-  popd > /dev/null;
   popd > /dev/null;
 }
 
