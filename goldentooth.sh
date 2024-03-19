@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ansible_path="${HELLHOLT_ANSIBLE_PATH:-${HOME}/Projects/cluster}";
+ansible_path="${GOLDENTOOTH_ANSIBLE_PATH:-${HOME}/goldentooth/cluster}";
 
 # Install Ansible dependencies.
 function goldentooth:install() {
