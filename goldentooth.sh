@@ -9,6 +9,26 @@ function goldentooth:install() {
   popd > /dev/null;
 }
 
+# Ping all hosts.
+function goldentooth:ping() {
+  : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)>"}";
+  local targets="${1}";
+  pushd "${ansible_path}" > /dev/null;
+  ansible "${targets}" -m ping;
+  popd > /dev/null;
+}
+
+# Run an arbitrary command on all hosts.
+function goldentooth:command() {
+  : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
+  local targets="${1}";
+  shift;
+  local command_expression="${@}";
+  pushd "${ansible_path}" > /dev/null;
+  ansible "${targets}" -a "${command_expression}";
+  popd > /dev/null;
+}
+
 # Lint all roles.
 function goldentooth:lint() {
   pushd "${ansible_path}" > /dev/null;
@@ -41,6 +61,8 @@ function goldentooth:usage() {
   printf "%${width}s %s\n" "autocomplete" "Enable bash autocompletion.";
   printf "%${width}s %s\n" "install" "Install Ansible dependencies.";
   printf "%${width}s %s\n" "lint" "Lint all roles.";
+  printf "%${width}s %s\n" "ping" "Ping all hosts.";
+  printf "%${width}s %s\n" "command" "Run an arbitrary command on all hosts.";
   printf "%${width}s %s\n" "edit_vault" "Edit the vault.";
   printf "%${width}s %s\n" "ansible_playbook" "Run a specified Ansible playbook.";
   printf "%${width}s %s\n" "usage" "Display usage information.";
@@ -75,6 +97,7 @@ function goldentooth() {
   export OBJC_DISABLE_INITIALIZE_FORK_SAFETY='YES';
   export K8S_AUTH_KUBECONFIG='~/.kube/config';
   if type "goldentooth:${subcommand%:*}" > /dev/null 2>&1; then
+    shift;
     host_expression="${1:-all}";
     shift;
     "goldentooth:${subcommand%:*}" "${host_expression}" "${@:1}";
