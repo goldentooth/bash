@@ -18,6 +18,15 @@ function goldentooth:ping() {
   popd > /dev/null;
 }
 
+# Get uptime for all hosts.
+function goldentooth:uptime() {
+  : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)>"}";
+  local targets="${1}";
+  pushd "${ansible_path}" > /dev/null;
+  ansible "${targets}" -a "uptime";
+  popd > /dev/null;
+}
+
 # Run an arbitrary command on all hosts.
 function goldentooth:command() {
   : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
@@ -62,6 +71,7 @@ function goldentooth:usage() {
   printf "%${width}s %s\n" "install" "Install Ansible dependencies.";
   printf "%${width}s %s\n" "lint" "Lint all roles.";
   printf "%${width}s %s\n" "ping" "Ping all hosts.";
+  printf "%${width}s %s\n" "uptime" "Get uptime for all hosts.";
   printf "%${width}s %s\n" "command" "Run an arbitrary command on all hosts.";
   printf "%${width}s %s\n" "edit_vault" "Edit the vault.";
   printf "%${width}s %s\n" "ansible_playbook" "Run a specified Ansible playbook.";
