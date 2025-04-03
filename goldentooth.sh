@@ -54,10 +54,13 @@ function goldentooth:edit_vault() {
 
 # Run a specified Ansible playbook.
 function goldentooth:ansible_playbook() {
-  : "${2?"Usage: ${FUNCNAME[0]} <PLAYBOOK>"}";
+  : "${2?"Usage: ${FUNCNAME[0]} <PLAYBOOK> ..."}";
   local playbook_expression="${1}";
+  shift;
+  shift;
+  local arguments="${@}";
   pushd "${ansible_path}" > /dev/null;
-  ansible-playbook "playbooks/${playbook_expression}.yaml";
+  ansible-playbook "playbooks/${playbook_expression}.yaml" "${arguments}";
   popd > /dev/null;
 }
 
