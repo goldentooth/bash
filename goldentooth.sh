@@ -54,13 +54,12 @@ function goldentooth:edit_vault() {
 
 # Run a specified Ansible playbook.
 function goldentooth:ansible_playbook() {
-  : "${2?"Usage: ${FUNCNAME[0]} <PLAYBOOK> ..."}";
+  : "${1?"Usage: ${FUNCNAME[0]} <PLAYBOOK> ..."}";
   local playbook_expression="${1}";
   shift;
-  shift;
-  local arguments="${@}";
+  local arguments="${@:1}";
   pushd "${ansible_path}" > /dev/null;
-  ansible-playbook "playbooks/${playbook_expression}.yaml" "${arguments}";
+  ansible-playbook "playbooks/${playbook_expression}.yaml" ${arguments};
   popd > /dev/null;
 }
 
@@ -115,7 +114,9 @@ function goldentooth() {
     shift;
     "goldentooth:${subcommand%:*}" "${host_expression}" "${@:1}";
   else
-    goldentooth:ansible_playbook "${subcommand}" "${@:1}";
+    playbook_expression="${subcommand}";
+    shift;
+    goldentooth:ansible_playbook "${playbook_expression}" "${@}";
   fi;
 }
 
