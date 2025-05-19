@@ -1,7 +1,7 @@
 {
   "name": "goldentooth/bash",
   "version": "0.0.1",
-  "description": "Bash scripts for dealing with GoldenTooth.",
+  "description": "Bash scripts for dealing with Goldentooth.",
   "scripts": [
     "goldentooth.sh"
   ],
