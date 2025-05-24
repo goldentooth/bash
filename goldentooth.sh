@@ -9,6 +9,34 @@ function goldentooth:install() {
   popd > /dev/null;
 }
 
+# Ansible Console - start an interactive Ansible console.
+function goldentooth:console() {
+  : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)> [ARGS]..."}";
+  local targets="${1}";
+  shift;
+  pushd "${ansible_path}" > /dev/null;
+  ansible-console "${targets}" "${@}";
+  popd > /dev/null;
+}
+
+# Debug a variable on the specified hosts.
+function goldentooth:debug_var() {
+  : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <EXPRESSION>"}";
+  local targets="${1}";
+  shift;
+  local expression="${@}";
+  goldentooth:ansible_playbook 'var' --limit="${targets}" --extra-vars "var=${expression}";
+}
+
+# Debug a message on the specified hosts.
+function goldentooth:debug_msg() {
+  : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <EXPRESSION>"}";
+  local targets="${1}";
+  shift;
+  local expression="${@}";
+  goldentooth:ansible_playbook 'msg' --limit="${targets}" --extra-vars="msg=\"${expression}\"";
+}
+
 # Ping all hosts.
 function goldentooth:ping() {
   : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)>"}";
@@ -57,9 +85,8 @@ function goldentooth:ansible_playbook() {
   : "${1?"Usage: ${FUNCNAME[0]} <PLAYBOOK> ..."}";
   local playbook_expression="${1}";
   shift;
-  local arguments="${@:1}";
   pushd "${ansible_path}" > /dev/null;
-  ansible-playbook "playbooks/${playbook_expression}.yaml" ${arguments};
+  ansible-playbook "playbooks/${playbook_expression}.yaml" "${@}";
   popd > /dev/null;
 }
 
