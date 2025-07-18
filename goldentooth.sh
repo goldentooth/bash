@@ -9,6 +9,22 @@ function goldentooth:install() {
   popd > /dev/null;
 }
 
+# Agent - run the Goldentooth Agent command.
+function goldentooth:agent() {
+  : "${1?"Usage: ${FUNCNAME[0]} <COMMAND> [ARGS]..."}";
+  local command="${1}";
+  shift;
+  pushd "${ansible_path}" > /dev/null;
+  # Check and see if uvx is installed. If not, install it.
+  if ! command -v uvx &> /dev/null; then
+    echo "uvx not found, installing...";
+    curl -LsSf https://astral.sh/uv/install.sh | sh;
+  fi;
+  # Run the command using uvx.
+  uvx --from git+https://github.com/goldentooth/agent goldentooth-agent "$@";
+  popd > /dev/null;
+}
+
 # Ansible Console - start an interactive Ansible console.
 function goldentooth:console() {
   : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)> [ARGS]..."}";
