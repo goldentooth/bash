@@ -76,9 +76,20 @@ function goldentooth:command() {
   : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
   local targets="${1}";
   shift;
-  local command_expression="${@}";
+  local command_expression="${*}";
   pushd "${ansible_path}" > /dev/null;
-  ansible "${targets}" -a "${command_expression}";
+  ansible "${targets}" -m shell -a "${command_expression}";
+  popd > /dev/null;
+}
+
+# Run a raw command on all hosts (bypasses shell escaping).
+function goldentooth:raw() {
+  : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
+  local targets="${1}";
+  shift;
+  local command_expression="${*}";
+  pushd "${ansible_path}" > /dev/null;
+  ansible "${targets}" -m raw -a "${command_expression}";
   popd > /dev/null;
 }
 
@@ -114,6 +125,7 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["ping"]="Ping all hosts."
   ["uptime"]="Get uptime for all hosts."
   ["command"]="Run an arbitrary command on all hosts."
+  ["raw"]="Run a raw command on all hosts (bypasses shell escaping)."
   ["edit_vault"]="Edit the vault."
   ["agent"]="Run the Goldentooth Agent command."
   ["debug_var"]="Debug a variable on the specified hosts."
