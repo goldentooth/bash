@@ -106,21 +106,36 @@ function goldentooth:ansible_playbook() {
   popd > /dev/null;
 }
 
+# Built-in command definitions
+declare -A GOLDENTOOTH_COMMANDS=(
+  ["autocomplete"]="Enable bash autocompletion."
+  ["install"]="Install Ansible dependencies."
+  ["lint"]="Lint all roles."
+  ["ping"]="Ping all hosts."
+  ["uptime"]="Get uptime for all hosts."
+  ["command"]="Run an arbitrary command on all hosts."
+  ["edit_vault"]="Edit the vault."
+  ["agent"]="Run the Goldentooth Agent command."
+  ["debug_var"]="Debug a variable on the specified hosts."
+  ["debug_msg"]="Debug a message on the specified hosts."
+  ["console"]="Start an interactive Ansible console."
+  ["ansible_playbook"]="Run a specified Ansible playbook."
+  ["usage"]="Display usage information."
+)
+
 # Display usage information.
 function goldentooth:usage() {
   local width=24;
   echo 'Usage: goldentooth <subcommand> [arguments...]';
   echo '';
   echo 'Subcommands:';
-  printf "%${width}s %s\n" "autocomplete" "Enable bash autocompletion.";
-  printf "%${width}s %s\n" "install" "Install Ansible dependencies.";
-  printf "%${width}s %s\n" "lint" "Lint all roles.";
-  printf "%${width}s %s\n" "ping" "Ping all hosts.";
-  printf "%${width}s %s\n" "uptime" "Get uptime for all hosts.";
-  printf "%${width}s %s\n" "command" "Run an arbitrary command on all hosts.";
-  printf "%${width}s %s\n" "edit_vault" "Edit the vault.";
-  printf "%${width}s %s\n" "ansible_playbook" "Run a specified Ansible playbook.";
-  printf "%${width}s %s\n" "usage" "Display usage information.";
+  
+  # Display built-in commands
+  for command in "${!GOLDENTOOTH_COMMANDS[@]}"; do
+    printf "%${width}s %s\n" "${command}" "${GOLDENTOOTH_COMMANDS[${command}]}";
+  done | sort;
+  
+  # Display playbook commands
   pushd "${ansible_path}" > /dev/null;
   for playbook in playbooks/*.yaml; do
     playbook_name="$(basename "${playbook}" '.yaml')";
