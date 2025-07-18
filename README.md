@@ -2,7 +2,27 @@
 
 Bash scripts for interacting with [Goldentooth, my Pi Bramble/Cluster](https://github.com/goldentooth/).
 
-It is probably most easily used with [`bpkg`](https://github.com/bpkg/bpkg).
+## Installation
+
+### With bpkg
+
+Install using [`bpkg`](https://github.com/bpkg/bpkg):
+
+```bash
+bpkg install goldentooth/bash
+```
+
+### Manual Installation
+
+```bash
+git clone https://github.com/goldentooth/bash.git
+cd bash
+make install
+```
+
+## Usage
+
+The `goldentooth` command provides a unified interface for managing your Pi cluster through Ansible playbooks and ad-hoc commands.
 
 ```
 $ goldentooth
@@ -68,3 +88,60 @@ Subcommands:
                      var Evaluate a variable on a host or group.
           zap_cluster_ca Delete the old cluster Certificate Authority.
 ```
+
+## Common Commands
+
+### Basic Operations
+```bash
+# Check if all hosts are reachable
+goldentooth ping all
+
+# Get uptime for all hosts
+goldentooth uptime all
+
+# Run arbitrary commands on specific hosts
+goldentooth command node1,node2 "free -h"
+
+# Debug variables on hosts
+goldentooth debug_var node1 "ansible_hostname"
+```
+
+### Cluster Management
+```bash
+# Install dependencies
+goldentooth install
+
+# Lint Ansible roles
+goldentooth lint
+
+# Bootstrap Kubernetes cluster
+goldentooth bootstrap_k8s
+
+# Setup various services
+goldentooth setup_docker
+goldentooth setup_consul
+goldentooth setup_nomad
+```
+
+### Interactive Mode
+```bash
+# Start an interactive Ansible console
+goldentooth console all
+
+# Edit encrypted vault
+goldentooth edit_vault
+```
+
+## Environment Variables
+
+- `GOLDENTOOTH_ANSIBLE_PATH`: Path to the Ansible directory (default: `~/Projects/goldentooth/ansible`)
+
+## Requirements
+
+- Bash 4.0+
+- Ansible
+- Access to your Goldentooth cluster inventory
+
+## License
+
+See [LICENSE](LICENSE) for details.
