@@ -93,6 +93,24 @@ function goldentooth:raw() {
   popd > /dev/null;
 }
 
+# Run a raw command as root user (bypasses shell escaping).
+function goldentooth:raw_root() {
+  : "${1?"Usage: ${FUNCNAME[0]} <COMMAND>"}";
+  local command_expression="${*}";
+  pushd "${ansible_path}" > /dev/null;
+  ansible all -m raw -a "${command_expression}" -u root;
+  popd > /dev/null;
+}
+
+# Run an arbitrary command as root user.
+function goldentooth:command_root() {
+  : "${1?"Usage: ${FUNCNAME[0]} <COMMAND>"}";
+  local command_expression="${*}";
+  pushd "${ansible_path}" > /dev/null;
+  ansible all -m shell -a "${command_expression}" -u root;
+  popd > /dev/null;
+}
+
 # Lint all roles.
 function goldentooth:lint() {
   pushd "${ansible_path}" > /dev/null;
@@ -126,6 +144,8 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["uptime"]="Get uptime for all hosts."
   ["command"]="Run an arbitrary command on all hosts."
   ["raw"]="Run a raw command on all hosts (bypasses shell escaping)."
+  ["command_root"]="Run an arbitrary command as root user."
+  ["raw_root"]="Run a raw command as root user (bypasses shell escaping)."
   ["edit_vault"]="Edit the vault."
   ["agent"]="Run the Goldentooth Agent command."
   ["debug_var"]="Debug a variable on the specified hosts."
