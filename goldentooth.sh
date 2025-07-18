@@ -95,19 +95,23 @@ function goldentooth:raw() {
 
 # Run a raw command as root user (bypasses shell escaping).
 function goldentooth:raw_root() {
-  : "${1?"Usage: ${FUNCNAME[0]} <COMMAND>"}";
+  : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
+  local targets="${1}";
+  shift;
   local command_expression="${*}";
   pushd "${ansible_path}" > /dev/null;
-  ansible all -m raw -a "${command_expression}" -u root;
+  ansible "${targets}" -m raw -a "${command_expression}" -u root;
   popd > /dev/null;
 }
 
 # Run an arbitrary command as root user.
 function goldentooth:command_root() {
-  : "${1?"Usage: ${FUNCNAME[0]} <COMMAND>"}";
+  : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
+  local targets="${1}";
+  shift;
   local command_expression="${*}";
   pushd "${ansible_path}" > /dev/null;
-  ansible all -m shell -a "${command_expression}" -u root;
+  ansible "${targets}" -m shell -a "${command_expression}" -u root;
   popd > /dev/null;
 }
 
@@ -161,12 +165,12 @@ function goldentooth:usage() {
   echo 'Usage: goldentooth <subcommand> [arguments...]';
   echo '';
   echo 'Subcommands:';
-  
+
   # Display built-in commands
   for command in "${!GOLDENTOOTH_COMMANDS[@]}"; do
     printf "%${width}s %s\n" "${command}" "${GOLDENTOOTH_COMMANDS[${command}]}";
   done | sort;
-  
+
   # Display playbook commands
   pushd "${ansible_path}" > /dev/null;
   for playbook in playbooks/*.yaml; do
