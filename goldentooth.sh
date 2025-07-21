@@ -78,7 +78,7 @@ function goldentooth:command() {
   shift;
   local command_expression="${*}";
   pushd "${ansible_path}" > /dev/null;
-  ansible "${targets}" -m shell -a "${command_expression}";
+  ansible-playbook playbooks/command.yaml --limit="${targets}" --extra-vars "command_to_run='${command_expression}'";
   popd > /dev/null;
 }
 
@@ -111,7 +111,7 @@ function goldentooth:command_root() {
   shift;
   local command_expression="${*}";
   pushd "${ansible_path}" > /dev/null;
-  ansible "${targets}" -m shell -a "${command_expression}" -u root;
+  ansible-playbook playbooks/command.yaml --limit="${targets}" --extra-vars "command_to_run='${command_expression}'" -u root;
   popd > /dev/null;
 }
 
@@ -126,6 +126,37 @@ function goldentooth:lint() {
 function goldentooth:edit_vault() {
   pushd "${ansible_path}" > /dev/null;
   ansible-vault edit ./inventory/group_vars/all/vault;
+  popd > /dev/null;
+}
+
+# View the vault contents.
+function goldentooth:view_vault() {
+  pushd "${ansible_path}" > /dev/null;
+  ansible-vault view ./inventory/group_vars/all/vault --vault-password-file ~/.goldentooth_vault_password;
+  popd > /dev/null;
+}
+
+# Get a specific value from the vault.
+function goldentooth:get_vault() {
+  : "${1?"Usage: ${FUNCNAME[0]} <VAULT_PATH> (e.g., secret_vault.consul.mgmt_token)"}";
+  local vault_path="${1}";
+  pushd "${ansible_path}" > /dev/null;
+  ansible-vault view ./inventory/group_vars/all/vault --vault-password-file ~/.goldentooth_vault_password | yq ".${vault_path}";
+  popd > /dev/null;
+}
+
+# Set a specific value in the vault.
+function goldentooth:set_vault() {
+  : "${2?"Usage: ${FUNCNAME[0]} <VAULT_PATH> <VALUE> (e.g., secret_vault.consul.mgmt_token \"new-token-value\")"}";
+  local vault_path="${1}";
+  local new_value="${2}";
+  pushd "${ansible_path}" > /dev/null;
+  # Create a temporary file with the updated vault contents
+  local temp_vault=$(mktemp);
+  ansible-vault view ./inventory/group_vars/all/vault --vault-password-file ~/.goldentooth_vault_password | yq ".${vault_path} = \"${new_value}\"" > "${temp_vault}";
+  # Encrypt the updated contents back to the vault
+  ansible-vault encrypt "${temp_vault}" --vault-password-file ~/.goldentooth_vault_password --output ./inventory/group_vars/all/vault;
+  rm "${temp_vault}";
   popd > /dev/null;
 }
 
@@ -151,6 +182,9 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["command_root"]="Run an arbitrary command as root user."
   ["raw_root"]="Run a raw command as root user (bypasses shell escaping)."
   ["edit_vault"]="Edit the vault."
+  ["view_vault"]="View the vault contents."
+  ["get_vault"]="Get a specific value from the vault."
+  ["set_vault"]="Set a specific value in the vault."
   ["agent"]="Run the Goldentooth Agent command."
   ["debug_var"]="Debug a variable on the specified hosts."
   ["debug_msg"]="Debug a message on the specified hosts."
