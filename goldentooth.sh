@@ -55,7 +55,7 @@ function goldentooth:test() {
   fi;
   
   case "${test_suite}" in
-    all|consul|kubernetes|k8s|vault|prometheus|grafana|storage|system)
+    all|consul|kubernetes|k8s|vault|prometheus|grafana|storage|system|step_ca|certificates|pki)
       echo "Running ${test_suite} tests...";
       ansible-playbook "playbooks/test_${test_suite}.yaml" "${@}";
       ;;
@@ -65,7 +65,7 @@ function goldentooth:test() {
       ;;
     *)
       echo "Unknown test suite: ${test_suite}";
-      echo "Available test suites: all, consul, kubernetes, vault, prometheus, grafana, storage, system, quick";
+      echo "Available test suites: all, consul, kubernetes, vault, prometheus, grafana, storage, system, step_ca, quick";
       popd > /dev/null;
       return 1;
       ;;
