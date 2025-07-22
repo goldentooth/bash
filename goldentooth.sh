@@ -35,6 +35,47 @@ function goldentooth:console() {
   popd > /dev/null;
 }
 
+# Run cluster health tests.
+function goldentooth:test() {
+  local test_suite="${1:-all}";
+  shift;
+  local test_path="${ansible_path}/tests";
+  
+  # Check if test directory exists
+  if [[ ! -d "${test_path}" ]]; then
+    echo "Test directory not found at ${test_path}";
+    return 1;
+  fi;
+  
+  pushd "${test_path}" > /dev/null;
+  
+  # Set vault password file if it exists
+  if [[ -f ~/.goldentooth_vault_password ]]; then
+    export ANSIBLE_VAULT_PASSWORD_FILE=~/.goldentooth_vault_password;
+  fi;
+  
+  case "${test_suite}" in
+    all|consul|kubernetes|k8s|vault|prometheus|grafana|storage|system)
+      echo "Running ${test_suite} tests...";
+      ansible-playbook "playbooks/test_${test_suite}.yaml" "${@}";
+      ;;
+    quick)
+      echo "Running quick health checks...";
+      ansible-playbook "playbooks/test_all.yaml" --tags "system" "${@}";
+      ;;
+    *)
+      echo "Unknown test suite: ${test_suite}";
+      echo "Available test suites: all, consul, kubernetes, vault, prometheus, grafana, storage, system, quick";
+      popd > /dev/null;
+      return 1;
+      ;;
+  esac;
+  
+  local result=$?;
+  popd > /dev/null;
+  return $result;
+}
+
 # Debug a variable on the specified hosts.
 function goldentooth:debug_var() {
   : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <EXPRESSION>"}";
@@ -190,6 +231,7 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["debug_msg"]="Debug a message on the specified hosts."
   ["console"]="Start an interactive Ansible console."
   ["ansible_playbook"]="Run a specified Ansible playbook."
+  ["test"]="Run cluster health tests."
   ["usage"]="Display usage information."
 )
 
@@ -238,9 +280,14 @@ function goldentooth() {
   export K8S_AUTH_KUBECONFIG='~/.kube/config';
   if type "goldentooth:${subcommand%:*}" > /dev/null 2>&1; then
     shift;
-    host_expression="${1:-all}";
-    shift;
-    "goldentooth:${subcommand%:*}" "${host_expression}" "${@:1}";
+    # Check if the function is test, which doesn't need a host expression
+    if [[ "${subcommand%:*}" == "test" ]]; then
+      "goldentooth:${subcommand%:*}" "${@}";
+    else
+      host_expression="${1:-all}";
+      shift;
+      "goldentooth:${subcommand%:*}" "${host_expression}" "${@:1}";
+    fi;
   else
     playbook_expression="${subcommand}";
     shift;
