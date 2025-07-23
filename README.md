@@ -20,6 +20,8 @@ cd bash
 make install
 ```
 
+**IMPORTANT**: After making any changes to the `goldentooth.sh` script, you must run `make install` again to update the system-wide command.
+
 ## Usage
 
 The `goldentooth` command provides a unified interface for managing your Pi cluster through Ansible playbooks and ad-hoc commands.
@@ -79,7 +81,11 @@ Subcommands:
              setup_nomad Setup Nomad.
         setup_prometheus Setup Prometheus.
                setup_ray Setup Ray.
-             setup_slurm Setup Slurm.
+             setup_slurm Setup Slurm (legacy - use modular commands below).
+        setup_slurm_core Setup Slurm core configuration only (fast).
+         setup_hpc_software Setup HPC software stack (slow, idempotent).
+             setup_lmod Setup Lmod environment module system.
+     setup_slurm_modules Setup module files for HPC software.
              setup_vault Setup HashiCorp Consul.
             setup_vector Setup Vector.
                 shutdown Cleanly shut down the hosts in the cluster.
@@ -121,6 +127,24 @@ goldentooth bootstrap_k8s
 goldentooth setup_docker
 goldentooth setup_consul
 goldentooth setup_nomad
+```
+
+### Slurm HPC Setup (Modular Approach)
+```bash
+# Fast Slurm core setup (essential configuration only)
+goldentooth setup_slurm_core
+
+# Setup Lmod environment module system
+goldentooth setup_lmod
+
+# Install HPC software stack (slow, but highly idempotent)
+goldentooth setup_hpc_software
+
+# Create module files for installed software
+goldentooth setup_slurm_modules
+
+# Legacy: Full Slurm setup (slow, not recommended)
+goldentooth setup_slurm
 ```
 
 ### Interactive Mode

@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+#
+# Goldentooth CLI - Unified interface for cluster operations
+#
+# IMPORTANT: After making changes to this script, you MUST run `make install`
+# from the bash/ directory to install the updated version system-wide.
+#
+# Usage: goldentooth <command> [args...]
+# Example: goldentooth test slurm
+#          goldentooth setup_consul all
+#          goldentooth ping all
+#
 
 ansible_path="${GOLDENTOOTH_ANSIBLE_PATH:-${HOME}/Projects/goldentooth/ansible}";
 
@@ -55,9 +66,16 @@ function goldentooth:test() {
   fi;
   
   case "${test_suite}" in
-    all|consul|kubernetes|k8s|vault|prometheus|grafana|storage|system|step_ca|certificates|pki)
+    all|consul|kubernetes|k8s|vault|prometheus|grafana|storage|system|step_ca|certificates|pki|slurm)
       echo "Running ${test_suite} tests...";
-      ansible-playbook "playbooks/test_${test_suite}.yaml" "${@}";
+      if [[ "${test_suite}" == "slurm" ]]; then
+        # Run Slurm tests from the main playbooks directory
+        popd > /dev/null;
+        pushd "${ansible_path}" > /dev/null;
+        ansible-playbook "playbooks/test_slurm.yaml" "${@}";
+      else
+        ansible-playbook "playbooks/test_${test_suite}.yaml" "${@}";
+      fi
       ;;
     quick)
       echo "Running quick health checks...";
@@ -65,7 +83,7 @@ function goldentooth:test() {
       ;;
     *)
       echo "Unknown test suite: ${test_suite}";
-      echo "Available test suites: all, consul, kubernetes, vault, prometheus, grafana, storage, system, step_ca, quick";
+      echo "Available test suites: all, consul, kubernetes, vault, prometheus, grafana, storage, system, step_ca, slurm, quick";
       popd > /dev/null;
       return 1;
       ;;
