@@ -12,10 +12,40 @@
 #
 
 ansible_path="${GOLDENTOOTH_ANSIBLE_PATH:-${HOME}/Projects/goldentooth/ansible}";
+venv_path="${ansible_path}/.venv";
+
+# Setup Ansible virtual environment (run once).
+function goldentooth:setup_venv() {
+  echo "Setting up Ansible virtual environment..."
+  
+  # Create virtual environment
+  python3 -m venv "${venv_path}"
+  
+  # Activate and install packages
+  source "${venv_path}/bin/activate"
+  pip install --upgrade pip ansible kubernetes
+  
+  echo "Virtual environment setup complete at ${venv_path}"
+}
+
+# Activate Ansible virtual environment.
+function goldentooth:activate_venv() {
+  if [ ! -d "${venv_path}" ]; then
+    echo "Ansible virtual environment not found. Run 'goldentooth setup_venv' first."
+    return 1
+  fi
+  source "${venv_path}/bin/activate"
+}
+
+# Helper function to enter ansible directory with venv activated.
+function goldentooth:enter_ansible() {
+  pushd "${ansible_path}" > /dev/null
+  goldentooth:activate_venv || return 1
+}
 
 # Install Ansible dependencies.
 function goldentooth:install() {
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-galaxy install -r requirements.yml;
   popd > /dev/null;
 }
@@ -25,7 +55,7 @@ function goldentooth:agent() {
   : "${1?"Usage: ${FUNCNAME[0]} <COMMAND> [ARGS]..."}";
   local command="${1}";
   shift;
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   # Check and see if uvx is installed. If not, install it.
   if ! command -v uvx &> /dev/null; then
     echo "uvx not found, installing...";
@@ -41,7 +71,7 @@ function goldentooth:console() {
   : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)> [ARGS]..."}";
   local targets="${1}";
   shift;
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-console "${targets}" "${@}";
   popd > /dev/null;
 }
@@ -59,6 +89,7 @@ function goldentooth:test() {
   fi;
   
   pushd "${test_path}" > /dev/null;
+  goldentooth:activate_venv || return 1;
   
   # Set vault password file if it exists
   if [[ -f ~/.goldentooth_vault_password ]]; then
@@ -128,7 +159,7 @@ function goldentooth:debug_msg() {
 function goldentooth:ping() {
   : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)>"}";
   local targets="${1}";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible "${targets}" -m ping;
   popd > /dev/null;
 }
@@ -137,7 +168,7 @@ function goldentooth:ping() {
 function goldentooth:uptime() {
   : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)>"}";
   local targets="${1}";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible "${targets}" -a "uptime";
   popd > /dev/null;
 }
@@ -148,7 +179,7 @@ function goldentooth:command() {
   local targets="${1}";
   shift;
   local command_expression="${*}";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-playbook playbooks/command.yaml --limit="${targets}" --extra-vars "command_to_run='${command_expression}'";
   popd > /dev/null;
 }
@@ -159,7 +190,7 @@ function goldentooth:raw() {
   local targets="${1}";
   shift;
   local command_expression="${*}";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible "${targets}" -m raw -a "${command_expression}";
   popd > /dev/null;
 }
@@ -170,7 +201,7 @@ function goldentooth:raw_root() {
   local targets="${1}";
   shift;
   local command_expression="${*}";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible "${targets}" -m raw -a "${command_expression}" -u root;
   popd > /dev/null;
 }
@@ -181,28 +212,28 @@ function goldentooth:command_root() {
   local targets="${1}";
   shift;
   local command_expression="${*}";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-playbook playbooks/command.yaml --limit="${targets}" --extra-vars "command_to_run='${command_expression}'" -u root;
   popd > /dev/null;
 }
 
 # Lint all roles.
 function goldentooth:lint() {
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-lint;
   popd > /dev/null;
 }
 
 # Edit the vault.
 function goldentooth:edit_vault() {
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-vault edit ./inventory/group_vars/all/vault;
   popd > /dev/null;
 }
 
 # View the vault contents.
 function goldentooth:view_vault() {
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-vault view ./inventory/group_vars/all/vault --vault-password-file ~/.goldentooth_vault_password;
   popd > /dev/null;
 }
@@ -211,7 +242,7 @@ function goldentooth:view_vault() {
 function goldentooth:get_vault() {
   : "${1?"Usage: ${FUNCNAME[0]} <VAULT_PATH> (e.g., secret_vault.consul.mgmt_token)"}";
   local vault_path="${1}";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-vault view ./inventory/group_vars/all/vault --vault-password-file ~/.goldentooth_vault_password | yq ".${vault_path}";
   popd > /dev/null;
 }
@@ -221,7 +252,7 @@ function goldentooth:set_vault() {
   : "${2?"Usage: ${FUNCNAME[0]} <VAULT_PATH> <VALUE> (e.g., secret_vault.consul.mgmt_token \"new-token-value\")"}";
   local vault_path="${1}";
   local new_value="${2}";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   # Create a temporary file with the updated vault contents
   local temp_vault=$(mktemp);
   ansible-vault view ./inventory/group_vars/all/vault --vault-password-file ~/.goldentooth_vault_password | yq ".${vault_path} = \"${new_value}\"" > "${temp_vault}";
@@ -331,7 +362,7 @@ function goldentooth:ansible_playbook() {
   : "${1?"Usage: ${FUNCNAME[0]} <PLAYBOOK> ..."}";
   local playbook_expression="${1}";
   shift;
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   ansible-playbook "playbooks/${playbook_expression}.yaml" "${@}";
   popd > /dev/null;
 }
@@ -374,7 +405,7 @@ function goldentooth:usage() {
   done | sort;
 
   # Display playbook commands
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   for playbook in playbooks/*.yaml; do
     playbook_name="$(basename "${playbook}" '.yaml')";
     first_line="$(head -n 1 "${playbook}")";
@@ -390,7 +421,7 @@ function goldentooth:usage() {
 # Print autocomplete script.
 function goldentooth:autocomplete() {
   local subcommands_string="";
-  pushd "${ansible_path}" > /dev/null;
+  goldentooth:enter_ansible || return 1;
   for playbook in playbooks/*.yaml; do
     playbook_name="$(basename "${playbook}" .yaml)";
     subcommands_string="${subcommands_string} ${playbook_name}";
