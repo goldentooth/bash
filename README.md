@@ -36,7 +36,7 @@ Subcommands:
                     lint Lint all roles.
                     ping Ping all hosts.
                   uptime Get uptime for all hosts.
-                 command Run an arbitrary command on all hosts.
+                    exec Execute SSH command on resolved hosts.
               edit_vault Edit the vault.
         ansible_playbook Run a specified Ansible playbook.
                    usage Display usage information.
@@ -105,8 +105,15 @@ goldentooth ping all
 # Get uptime for all hosts
 goldentooth uptime all
 
-# Run arbitrary commands on specific hosts
-goldentooth command node1,node2 "free -h"
+# Execute SSH commands on specific hosts
+goldentooth exec node1,node2 "free -h"
+
+# Start interactive shell on a node
+goldentooth shell bettley
+
+# Copy files to/from nodes
+goldentooth cp local-file.txt node1:/tmp/
+goldentooth cp node2:/var/log/app.log ./logs/
 
 # Debug variables on hosts
 goldentooth debug_var node1 "ansible_hostname"

@@ -178,27 +178,7 @@ function goldentooth:uptime() {
   popd > /dev/null;
 }
 
-# Run an arbitrary command on all hosts.
-function goldentooth:command() {
-  : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
-  local targets="${1}";
-  shift;
-  local command_expression="${*}";
-  goldentooth:enter_ansible || return 1;
-  ansible-playbook playbooks/command.yaml --limit="${targets}" --extra-vars "command_to_run='${command_expression}'";
-  popd > /dev/null;
-}
 
-# Run a raw command on all hosts (bypasses shell escaping).
-function goldentooth:raw() {
-  : "${2?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
-  local targets="${1}";
-  shift;
-  local command_expression="${*}";
-  goldentooth:enter_ansible || return 1;
-  ansible "${targets}" -m raw -a "${command_expression}";
-  popd > /dev/null;
-}
 
 # Run a raw command as root user (bypasses shell escaping).
 function goldentooth:raw_root() {
@@ -211,16 +191,6 @@ function goldentooth:raw_root() {
   popd > /dev/null;
 }
 
-# Run an arbitrary command as root user.
-function goldentooth:command_root() {
-  : "${1?"Usage: ${FUNCNAME[0]} <TARGET(S)> <COMMAND>"}";
-  local targets="${1}";
-  shift;
-  local command_expression="${*}";
-  goldentooth:enter_ansible || return 1;
-  ansible-playbook playbooks/command.yaml --limit="${targets}" --extra-vars "command_to_run='${command_expression}'" -u root;
-  popd > /dev/null;
-}
 
 # Lint all roles.
 function goldentooth:lint() {
@@ -378,28 +348,28 @@ function goldentooth:dllama_inference() {
   local root_node="bettley";  # Default root node
   echo "🚀 Starting distributed LLaMA inference with prompt: '${prompt}'";
   echo "📍 Root node: ${root_node}";
-  goldentooth command_root "${root_node}" "cd /opt/distributed-llama && sudo -u dllama ./bin/start-dllama-root.sh --prompt '${prompt}' ${*}";
+  goldentooth shell "${root_node}"  # Then: cd /opt/distributed-llama && sudo -u dllama ./bin/start-dllama-root.sh --prompt '${prompt}' ${*}
 }
 
 # Check distributed-llama worker status across the cluster
 function goldentooth:dllama_status() {
   echo "📊 Checking distributed-llama worker status across cluster...";
-  goldentooth command all "systemctl is-active dllama-worker || echo 'Service not active'";
+  goldentooth exec all "systemctl is-active dllama-worker || echo 'Service not active'";
   echo "";
   echo "📋 Worker logs (last 5 lines):";
-  goldentooth command all "tail -n 5 /opt/distributed-llama/logs/worker.log 2>/dev/null || echo 'No worker logs'";
+  goldentooth exec all "tail -n 5 /opt/distributed-llama/logs/worker.log 2>/dev/null || echo 'No worker logs'";
 }
 
 # Stop all distributed-llama services
 function goldentooth:dllama_stop() {
   echo "🛑 Stopping distributed-llama services across cluster...";
-  goldentooth command_root all "systemctl stop dllama-worker dllama-root dllama-api 2>/dev/null || true";
+  goldentooth exec all "sudo systemctl stop dllama-worker dllama-root dllama-api 2>/dev/null || true";
 }
 
 # Start distributed-llama worker services 
 function goldentooth:dllama_start_workers() {
   echo "▶️  Starting distributed-llama worker services...";
-  goldentooth command_root all "systemctl start dllama-worker";
+  goldentooth exec all "sudo systemctl start dllama-worker";
 }
 
 # Download and convert a model for distributed-llama
@@ -412,14 +382,14 @@ function goldentooth:dllama_download_model() {
   read -p "Continue? (y/N) " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
-    goldentooth command_root "${root_node}" "cd /mnt/shared/llm-models && python3 -m distributed_llama.convert --model '${model_name}' --output-dir . || echo 'Model conversion failed - ensure distributed-llama Python tools are installed'";
+    goldentooth shell "${root_node}"  # Then: cd /mnt/shared/llm-models && python3 -m distributed_llama.convert --model '${model_name}' --output-dir . || echo 'Model conversion failed - ensure distributed-llama Python tools are installed'
   else
     echo "Model download cancelled.";
   fi
 }
 
 # Execute SSH command on resolved hosts
-function goldentooth:ssh_exec() {
+function goldentooth:exec() {
   local hosts="$1"
   local command="$2"
   local parallel_mode="${3:-false}"
@@ -491,7 +461,7 @@ function goldentooth:shell() {
       # Skip empty commands
       [[ -z "$command" ]] && continue
       
-      goldentooth:ssh_exec "$hosts" "$command" "true"
+      goldentooth:exec "$hosts" "$command" "true"
     done
   else
     echo "No hosts resolved from target: ${target}" >&2
@@ -618,9 +588,7 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["lint"]="Lint all roles."
   ["ping"]="Ping all hosts."
   ["uptime"]="Get uptime for all hosts."
-  ["command"]="Run an arbitrary command on all hosts."
-  ["raw"]="Run a raw command on all hosts (bypasses shell escaping)."
-  ["command_root"]="Run an arbitrary command as root user."
+  ["exec"]="Execute SSH command on resolved hosts."
   ["raw_root"]="Run a raw command as root user (bypasses shell escaping)."
   ["edit_vault"]="Edit the vault."
   ["view_vault"]="View the vault contents."
