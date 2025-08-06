@@ -340,15 +340,21 @@ function goldentooth:build_distributed_llama() {
   popd > /dev/null;
 }
 
-# Start distributed-llama inference with specified prompt
+# Run distributed LLaMA inference with specified prompt
 function goldentooth:dllama_inference() {
-  : "${1?"Usage: ${FUNCNAME[0]} <PROMPT> [additional_args...]"}";
-  local prompt="${1}";
-  shift;
-  local root_node="bettley";  # Default root node
-  echo "🚀 Starting distributed LLaMA inference with prompt: '${prompt}'";
-  echo "📍 Root node: ${root_node}";
-  goldentooth shell "${root_node}"  # Then: cd /opt/distributed-llama && sudo -u dllama ./bin/start-dllama-root.sh --prompt '${prompt}' ${*}
+  local prompt="${1:-Hello, world!}";
+  local steps="${2:-10}";
+  local model="${3:-llama3_2_1b_instruct_q40}";
+  
+  echo "🧠 Running distributed inference on Pi cluster...";
+  echo "   Prompt: ${prompt}";
+  echo "   Steps: ${steps}";
+  echo "   Model: ${model}";
+  
+  # Build worker list from inventory
+  local workers="allyrion:9999,bettley:9999,cargyll:9999,dalt:9999,erenford:9999,fenn:9999,gardener:9999,harlton:9999,inchfield:9999,jast:9999,karstark:9999,lipps:9999,norcross:9999,oakheart:9999,payne:9999";
+  
+  goldentooth exec manderly "cd /mnt/shared/llm-models/distributed-llama && sudo -u dllama dllama inference --model models/${model}/dllama_model_${model}.m --tokenizer models/${model}/dllama_tokenizer_${model}.t --buffer-float-type q80 --nthreads 4 --prompt '${prompt}' --steps ${steps} --workers ${workers}";
 }
 
 # Check distributed-llama worker status across the cluster
@@ -386,6 +392,56 @@ function goldentooth:dllama_download_model() {
   else
     echo "Model download cancelled.";
   fi
+}
+
+# List available and downloaded models
+function goldentooth:dllama_list_models() {
+  echo "📋 Available models for download:";
+  echo "   llama3_1_8b_instruct_q40    (6.3GB - Llama 3.1 8B)";
+  echo "   llama3_1_405b_instruct_q40  (238GB - Llama 3.1 405B)";
+  echo "   llama3_2_1b_instruct_q40    (1.7GB - Llama 3.2 1B)";
+  echo "   llama3_2_3b_instruct_q40    (3.4GB - Llama 3.2 3B)";
+  echo "   qwen3_0_6b_q40              (0.9GB - Qwen3 0.6B)";
+  echo "   qwen3_1_7b_q40              (2.2GB - Qwen3 1.7B)";
+  echo "   qwen3_8b_q40                (6.7GB - Qwen3 8B)";
+  echo "   qwen3_14b_q40               (10.9GB - Qwen3 14B)";
+  echo "";
+  echo "📁 Downloaded models:";
+  goldentooth exec manderly "ls -la /mnt/shared/llm-models/distributed-llama/models/ 2>/dev/null | grep -E '^d' | awk '{print \"   \" \$NF}' || echo '   (none)'";
+}
+
+# Quick inference with preset configurations
+function goldentooth:dllama_quick() {
+  local preset="${1}";
+  local prompt="${2}";
+  
+  if [ -z "${preset}" ] || [ -z "${prompt}" ]; then
+    echo "🚀 Quick inference presets:";
+    echo "   fast    - Quick 15 token response (Llama 3.2 1B)";
+    echo "   normal  - Standard 25 token response (Llama 3.2 1B)";  
+    echo "   long    - Extended 50 token response (Llama 3.2 1B)";
+    echo "";
+    echo "Usage: goldentooth dllama_quick <preset> '<prompt>'";
+    echo "Example: goldentooth dllama_quick fast 'What is AI?'";
+    return 1;
+  fi;
+  
+  case "${preset}" in
+    "fast")
+      goldentooth:dllama_inference "${prompt}" "15" "llama3_2_1b_instruct_q40";
+      ;;
+    "normal")
+      goldentooth:dllama_inference "${prompt}" "25" "llama3_2_1b_instruct_q40";
+      ;;
+    "long") 
+      goldentooth:dllama_inference "${prompt}" "50" "llama3_2_1b_instruct_q40";
+      ;;
+    *)
+      echo "❌ Unknown preset: ${preset}";
+      echo "Available presets: fast, normal, long";
+      return 1;
+      ;;
+  esac
 }
 
 # Execute SSH command on resolved hosts
@@ -608,6 +664,8 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["dllama_stop"]="Stop all distributed-llama services."
   ["dllama_start_workers"]="Start distributed-llama worker services."
   ["dllama_download_model"]="Download and convert a model for distributed-llama."
+  ["dllama_list_models"]="List available and downloaded models."
+  ["dllama_quick"]="Quick inference with preset configurations."
   ["shell"]="Start interactive shell for cluster nodes."
   ["set_motd"]="Set node-specific MOTD with ASCII art."
   ["pipe"]="Pipe commands from stdin to cluster nodes."
