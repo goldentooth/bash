@@ -14,6 +14,11 @@
 ansible_path="${GOLDENTOOTH_ANSIBLE_PATH:-${HOME}/Projects/goldentooth/ansible}";
 venv_path="${ansible_path}/.venv";
 
+# Load inventory groups for SSH operations
+if [ -f "/usr/local/bin/goldentooth-inventory.sh" ]; then
+  source "/usr/local/bin/goldentooth-inventory.sh"
+fi
+
 # Setup Ansible virtual environment (run once).
 function goldentooth:setup_venv() {
   echo "Setting up Ansible virtual environment..."
@@ -80,11 +85,11 @@ function goldentooth:console() {
 function goldentooth:test() {
   local test_suite="${1:-all}";
   shift;
-  local test_path="${ansible_path}/tests";
+  local test_path="${ansible_path}";
   
-  # Check if test directory exists
+  # Check if ansible directory exists
   if [[ ! -d "${test_path}" ]]; then
-    echo "Test directory not found at ${test_path}";
+    echo "Ansible directory not found at ${test_path}";
     return 1;
   fi;
   
@@ -357,6 +362,245 @@ function goldentooth:mcp_auth() {
   echo "claude mcp add --transport http goldentooth_mcp ${mcp_endpoint}/mcp/request --header \"Authorization: Bearer ${access_token}\"";
 }
 
+# Cross-compile distributed-llama binaries on Velaryon
+function goldentooth:build_distributed_llama() {
+  echo "🔨 Building distributed-llama binaries via cross-compilation...";
+  goldentooth:enter_ansible || return 1;
+  ansible-playbook "playbooks/setup_distributed_llama.yaml" --limit velaryon --tags "cross_compile,build";
+  popd > /dev/null;
+}
+
+# Start distributed-llama inference with specified prompt
+function goldentooth:dllama_inference() {
+  : "${1?"Usage: ${FUNCNAME[0]} <PROMPT> [additional_args...]"}";
+  local prompt="${1}";
+  shift;
+  local root_node="bettley";  # Default root node
+  echo "🚀 Starting distributed LLaMA inference with prompt: '${prompt}'";
+  echo "📍 Root node: ${root_node}";
+  goldentooth command_root "${root_node}" "cd /opt/distributed-llama && sudo -u dllama ./bin/start-dllama-root.sh --prompt '${prompt}' ${*}";
+}
+
+# Check distributed-llama worker status across the cluster
+function goldentooth:dllama_status() {
+  echo "📊 Checking distributed-llama worker status across cluster...";
+  goldentooth command all "systemctl is-active dllama-worker || echo 'Service not active'";
+  echo "";
+  echo "📋 Worker logs (last 5 lines):";
+  goldentooth command all "tail -n 5 /opt/distributed-llama/logs/worker.log 2>/dev/null || echo 'No worker logs'";
+}
+
+# Stop all distributed-llama services
+function goldentooth:dllama_stop() {
+  echo "🛑 Stopping distributed-llama services across cluster...";
+  goldentooth command_root all "systemctl stop dllama-worker dllama-root dllama-api 2>/dev/null || true";
+}
+
+# Start distributed-llama worker services 
+function goldentooth:dllama_start_workers() {
+  echo "▶️  Starting distributed-llama worker services...";
+  goldentooth command_root all "systemctl start dllama-worker";
+}
+
+# Download and convert a model for distributed-llama
+function goldentooth:dllama_download_model() {
+  : "${1?"Usage: ${FUNCNAME[0]} <MODEL_NAME> (e.g., meta-llama/Llama-3.2-1B)"}";
+  local model_name="${1}";
+  local root_node="bettley";
+  echo "📥 Downloading and converting model: ${model_name}";
+  echo "⚠️  This may take significant time and disk space";
+  read -p "Continue? (y/N) " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    goldentooth command_root "${root_node}" "cd /mnt/shared/llm-models && python3 -m distributed_llama.convert --model '${model_name}' --output-dir . || echo 'Model conversion failed - ensure distributed-llama Python tools are installed'";
+  else
+    echo "Model download cancelled.";
+  fi
+}
+
+# Execute SSH command on resolved hosts
+function goldentooth:ssh_exec() {
+  local hosts="$1"
+  local command="$2"
+  local parallel_mode="${3:-false}"
+  
+  # SSH options for clean output (disable pseudo-terminal to suppress MOTD)
+  local ssh_opts="-T -o StrictHostKeyChecking=no -o LogLevel=ERROR -q"
+  
+  # Convert hosts string to array
+  read -ra host_array <<< "$hosts"
+  
+  if [[ "${#host_array[@]}" -eq 1 ]]; then
+    # Single host - direct SSH
+    local host="${host_array[0]}"
+    ssh ${ssh_opts} "root@${host}" "$command"
+  elif [[ "${#host_array[@]}" -gt 1 ]]; then
+    if goldentooth:check_parallel && [[ "$parallel_mode" == "true" ]]; then
+      # Use GNU parallel for multiple hosts
+      printf '%s\n' "${host_array[@]}" | \
+        parallel -j0 --tag "ssh ${ssh_opts} root@{} '$command'"
+    else
+      # Sequential execution
+      for host in "${host_array[@]}"; do
+        echo "${host}:" 
+        ssh ${ssh_opts} "root@${host}" "$command"
+      done
+    fi
+  else
+    echo "No hosts resolved from target" >&2
+    return 1
+  fi
+}
+
+# Interactive shell for cluster nodes (SSH-based)
+function goldentooth:shell() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOST_EXPRESSION> (e.g., bettley, all, consul_server)"}";
+  local target="${1}";
+  
+  # Resolve target to actual hosts
+  local hosts
+  if type goldentooth:resolve_hosts >/dev/null 2>&1; then
+    hosts=$(goldentooth:resolve_hosts "$target")
+  else
+    hosts="$target"  # Fallback to direct host name
+  fi
+  
+  # Convert to array and check count
+  read -ra host_array <<< "$hosts"
+  local host_count="${#host_array[@]}"
+  
+  if [[ "$host_count" -eq 1 ]]; then
+    local host="${host_array[0]}"
+    echo "Connecting to ${host}..."
+    
+    # Direct SSH session (interactive, bypass profile to skip MOTD)
+    ssh -t -o StrictHostKeyChecking=no -o LogLevel=ERROR -q "root@${host}" "bash --noprofile"
+    
+  elif [[ "$host_count" -gt 1 ]]; then
+    echo "Interactive shell for ${host_count} hosts: ${host_array[*]}"
+    echo "Commands will execute on all ${host_count} hosts. Type 'exit' to return."
+    echo "WARNING: Broadcast mode - commands run on ALL selected hosts!"
+    echo
+    
+    while true; do
+      read -p "[${target}:${host_count}]$ " -e command
+      
+      # Exit condition
+      [[ "$command" == "exit" ]] && break
+      
+      # Skip empty commands
+      [[ -z "$command" ]] && continue
+      
+      goldentooth:ssh_exec "$hosts" "$command" "true"
+    done
+  else
+    echo "No hosts resolved from target: ${target}" >&2
+    return 1
+  fi
+}
+
+# Pipe input to cluster nodes (SSH-based)
+function goldentooth:pipe() {
+  : "${1?"Usage: echo 'commands' | ${FUNCNAME[0]} <HOST_EXPRESSION>"}";
+  local target="${1}";
+  
+  # Resolve target to actual hosts
+  local hosts
+  if type goldentooth:resolve_hosts >/dev/null 2>&1; then
+    hosts=$(goldentooth:resolve_hosts "$target")
+  else
+    hosts="$target"
+  fi
+  
+  read -ra host_array <<< "$hosts"
+  
+  # Read from stdin and execute each line
+  while IFS= read -r command; do
+    [[ -z "$command" ]] && continue
+    [[ "$command" =~ ^[[:space:]]*# ]] && continue  # Skip comments
+    
+    goldentooth:ssh_exec "$hosts" "$command" "true"  # Use parallel for efficiency
+  done
+}
+
+# Copy files to/from cluster nodes (scp wrapper)
+function goldentooth:cp() {
+  : "${1?"Usage: ${FUNCNAME[0]} <source> <destination> (supports node:path syntax)"}";
+  : "${2?"Usage: ${FUNCNAME[0]} <source> <destination> (supports node:path syntax)"}";
+  local source="${1}";
+  local destination="${2}";
+  
+  # Parse node:path format
+  if [[ "$source" =~ ^([^:]+):(.+)$ ]]; then
+    local source_node="${BASH_REMATCH[1]}";
+    local source_path="${BASH_REMATCH[2]}";
+    scp "root@${source_node}:${source_path}" "${destination}";
+  elif [[ "$destination" =~ ^([^:]+):(.+)$ ]]; then
+    local dest_node="${BASH_REMATCH[1]}";
+    local dest_path="${BASH_REMATCH[2]}";
+    scp "${source}" "root@${dest_node}:${dest_path}";
+  else
+    echo "Error: Use node:path syntax (e.g., bettley:/opt/file.txt)" >&2;
+    echo "Examples:" >&2;
+    echo "  goldentooth cp local-file.txt bettley:/tmp/" >&2;
+    echo "  goldentooth cp allyrion:/var/log/app.log ./logs/" >&2;
+    return 1;
+  fi
+}
+
+# Execute batch commands from a script file (SSH-based)
+function goldentooth:batch() {
+  : "${1?"Usage: ${FUNCNAME[0]} <script-file> [target=all]"}";
+  local script_file="${1}";
+  local target="${2:-all}";
+  
+  if [[ ! -f "$script_file" ]]; then
+    echo "Script file not found: $script_file" >&2;
+    return 1;
+  fi
+  
+  # Resolve target to actual hosts
+  local hosts
+  if type goldentooth:resolve_hosts >/dev/null 2>&1; then
+    hosts=$(goldentooth:resolve_hosts "$target")
+  else
+    hosts="$target"
+  fi
+  
+  # Read script file and execute commands
+  while IFS= read -r command || [[ -n "$command" ]]; do
+    # Skip empty lines and comments
+    [[ -z "$command" ]] && continue
+    [[ "$command" =~ ^[[:space:]]*# ]] && continue
+    
+    goldentooth:ssh_exec "$hosts" "$command" "true"  # Use parallel
+  done < "$script_file"
+}
+
+# Here-document execution for multi-line commands (SSH-based)  
+function goldentooth:heredoc() {
+  : "${1?"Usage: ${FUNCNAME[0]} <HOST_EXPRESSION> <<'EOF' ... EOF"}";
+  local target="${1}";
+  
+  # Resolve target to actual hosts
+  local hosts
+  if type goldentooth:resolve_hosts >/dev/null 2>&1; then
+    hosts=$(goldentooth:resolve_hosts "$target")
+  else
+    hosts="$target"
+  fi
+  
+  # Create a temporary script from stdin
+  local temp_script=$(mktemp);
+  cat > "$temp_script"
+  
+  # Execute the temporary script
+  goldentooth:batch "$temp_script" "$target"
+  
+  # Clean up
+  rm -f "$temp_script"
+}
+
 # Run a specified Ansible playbook.
 function goldentooth:ansible_playbook() {
   : "${1?"Usage: ${FUNCNAME[0]} <PLAYBOOK> ..."}";
@@ -390,6 +634,18 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["ansible_playbook"]="Run a specified Ansible playbook."
   ["test"]="Run cluster health tests."
   ["usage"]="Display usage information."
+  ["build_distributed_llama"]="Cross-compile distributed-llama binaries on Velaryon."
+  ["dllama_inference"]="Run distributed LLaMA inference with a prompt."
+  ["dllama_status"]="Check distributed-llama worker status across cluster."
+  ["dllama_stop"]="Stop all distributed-llama services."
+  ["dllama_start_workers"]="Start distributed-llama worker services."
+  ["dllama_download_model"]="Download and convert a model for distributed-llama."
+  ["shell"]="Start interactive shell for cluster nodes."
+  ["set_motd"]="Set node-specific MOTD with ASCII art."
+  ["pipe"]="Pipe commands from stdin to cluster nodes."
+  ["cp"]="Copy files to/from cluster nodes (scp wrapper)."
+  ["batch"]="Execute batch commands from a script file."
+  ["heredoc"]="Execute here-document (multi-line) commands."
 )
 
 # Display usage information.
