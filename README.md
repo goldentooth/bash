@@ -65,9 +65,6 @@ Subcommands:
            install_vault Install HashiCorp Vault.
                      msg Evaluate a message on a host or group.
                reset_k8s Reset Kubernetes cluster with kubeadm.
-     rotate_consul_certs Rotate Consul TLS certificates.
-      rotate_nomad_certs Rotate Nomad TLS certificates.
-      rotate_vault_certs Rotate Vault TLS certificates.
             setup_consul Setup Consul.
             setup_docker Setup Docker.
              setup_envoy Setup Envoy.

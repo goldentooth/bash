@@ -38,10 +38,10 @@ function goldentooth:resolve_hosts() {
       echo "allyrion bettley cargyll dalt erenford fenn gardener harlton inchfield jast karstark lipps manderly norcross oakheart payne velaryon"
       ;;
     "consul_client")
-      echo "allyrion erenford fenn gardener harlton inchfield jast karstark lipps manderly norcross oakheart payne velaryon"
+      echo "allyrion bettley cargyll dalt harlton inchfield jast karstark lipps manderly norcross oakheart payne velaryon"
       ;;
     "consul_server")
-      echo "bettley cargyll dalt"
+      echo "erenford fenn gardener"
       ;;
     "distributed_llama")
       echo "allyrion bettley cargyll dalt erenford fenn gardener harlton inchfield jast karstark lipps manderly norcross oakheart payne"
@@ -86,7 +86,7 @@ function goldentooth:resolve_hosts() {
       echo "allyrion velaryon"
       ;;
     "nomad")
-      echo "bettley cargyll dalt erenford fenn gardener harlton inchfield jast karstark lipps manderly norcross oakheart payne velaryon"
+      echo "erenford fenn gardener harlton inchfield jast karstark lipps manderly norcross oakheart payne velaryon"
       ;;
     "nomad_client")
       echo "erenford fenn gardener harlton inchfield jast karstark lipps manderly norcross oakheart payne velaryon"
@@ -95,7 +95,7 @@ function goldentooth:resolve_hosts() {
       echo "velaryon"
       ;;
     "nomad_server")
-      echo "bettley cargyll dalt"
+      echo "erenford fenn gardener"
       ;;
     "prometheus")
       echo "allyrion"
@@ -128,7 +128,7 @@ function goldentooth:resolve_hosts() {
       echo "jast"
       ;;
     "vault")
-      echo "bettley cargyll dalt"
+      echo "erenford fenn gardener"
       ;;
     "zfs")
       echo "allyrion erenford gardener"
@@ -169,7 +169,7 @@ function goldentooth:list_groups() {
   echo "  loki: 1 hosts"
   echo "  mcp_server: 17 hosts"
   echo "  nfs_server: 2 hosts"
-  echo "  nomad: 16 hosts"
+  echo "  nomad: 13 hosts"
   echo "  nomad_client: 13 hosts"
   echo "  nomad_client_gpu: 1 hosts"
   echo "  nomad_server: 3 hosts"
