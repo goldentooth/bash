@@ -22,14 +22,14 @@ fi
 # Setup Ansible virtual environment (run once).
 function goldentooth:setup_venv() {
   echo "Setting up Ansible virtual environment..."
-  
+
   # Create virtual environment
   python3 -m venv "${venv_path}"
-  
+
   # Activate and install packages
   source "${venv_path}/bin/activate"
   pip install --upgrade pip ansible kubernetes
-  
+
   echo "Virtual environment setup complete at ${venv_path}"
 }
 
@@ -86,21 +86,21 @@ function goldentooth:test() {
   local test_suite="${1:-all}";
   shift;
   local test_path="${ansible_path}";
-  
+
   # Check if ansible directory exists
   if [[ ! -d "${test_path}" ]]; then
     echo "Ansible directory not found at ${test_path}";
     return 1;
   fi;
-  
+
   pushd "${test_path}" > /dev/null;
   goldentooth:activate_venv || return 1;
-  
+
   # Set vault password file if it exists
   if [[ -f ~/.goldentooth_vault_password ]]; then
     export ANSIBLE_VAULT_PASSWORD_FILE=~/.goldentooth_vault_password;
   fi;
-  
+
   # Dynamically discover available test suites
   local available_suites=()
   for playbook in playbooks/test_*.yaml; do
@@ -109,7 +109,7 @@ function goldentooth:test() {
       available_suites+=("$suite_name")
     fi
   done
-  
+
   case "${test_suite}" in
     quick)
       echo "Running quick health checks...";
@@ -124,7 +124,7 @@ function goldentooth:test() {
           break
         fi
       done
-      
+
       if [[ "$suite_found" == true ]]; then
         echo "Running ${test_suite} tests...";
         ansible-playbook "playbooks/test_${test_suite}.yaml" "${@}";
@@ -136,7 +136,7 @@ function goldentooth:test() {
       fi
       ;;
   esac;
-  
+
   local result=$?;
   popd > /dev/null;
   return $result;
@@ -240,40 +240,40 @@ function goldentooth:set_vault() {
 # Get MCP authentication token via Authelia OIDC flow.
 function goldentooth:mcp_auth() {
   local mcp_endpoint="https://mcp.services.goldentooth.net";
-  
+
   echo "Getting MCP authentication token...";
   echo "";
-  
+
   # Check for required tools
   if ! command -v curl &> /dev/null; then
     echo "Error: curl is required but not installed.";
     return 1;
   fi;
-  
+
   if ! command -v jq &> /dev/null; then
     echo "Error: jq is required but not installed.";
     return 1;
   fi;
-  
+
   # Get authorization URL
   echo "Step 1: Getting authorization URL...";
   local auth_response=$(curl -s -X POST "${mcp_endpoint}/auth/authorize" \
     -H "Content-Type: application/json" \
     -d '{}' -k);
-  
+
   if [[ $? -ne 0 ]]; then
     echo "Error: Failed to connect to MCP server. Is it running?";
     return 1;
   fi;
-  
+
   local auth_url=$(echo "${auth_response}" | jq -r '.authorization_url // empty');
-  
+
   if [[ -z "${auth_url}" || "${auth_url}" == "null" ]]; then
     echo "Error: Failed to get authorization URL.";
     echo "Response: ${auth_response}";
     return 1;
   fi;
-  
+
   # Display authorization URL
   echo "";
   echo "Step 2: Open this URL in your browser and log in:";
@@ -282,47 +282,47 @@ function goldentooth:mcp_auth() {
   echo "After logging in, you'll be redirected to a URL that looks like:";
   echo "https://mcp.services.goldentooth.net/callback?code=AUTHORIZATION_CODE";
   echo "";
-  
+
   # Get authorization code from user
   read -p "Copy the 'code' parameter from the redirect URL and paste it here: " auth_code;
-  
+
   if [[ -z "${auth_code}" ]]; then
     echo "Error: No authorization code provided.";
     return 1;
   fi;
-  
+
   # Exchange code for token
   echo "";
   echo "Step 3: Exchanging authorization code for access token...";
   local token_response=$(curl -s -X POST "${mcp_endpoint}/auth/token" \
     -H "Content-Type: application/json" \
     -d "{\"code\": \"${auth_code}\"}" -k);
-  
+
   if [[ $? -ne 0 ]]; then
     echo "Error: Failed to exchange authorization code for token.";
     return 1;
   fi;
-  
+
   local access_token=$(echo "${token_response}" | jq -r '.access_token // empty');
   local expires_in=$(echo "${token_response}" | jq -r '.expires_in // empty');
-  
+
   if [[ -z "${access_token}" || "${access_token}" == "null" ]]; then
     echo "Error: Failed to get access token.";
     echo "Response: ${token_response}";
     return 1;
   fi;
-  
+
   # Display results
   echo "";
   echo "✅ Success! Your JWT access token:";
   echo "${access_token}";
   echo "";
-  
+
   if [[ -n "${expires_in}" && "${expires_in}" != "null" ]]; then
     echo "Token expires in: ${expires_in} seconds";
     echo "";
   fi;
-  
+
   echo "To use with Claude Code:";
   echo "";
   echo "claude mcp add --transport http goldentooth_mcp ${mcp_endpoint}/mcp/request --header \"Authorization: Bearer ${access_token}\"";
@@ -332,109 +332,52 @@ function goldentooth:mcp_auth() {
   echo "claude mcp add --transport http goldentooth_mcp ${mcp_endpoint}/mcp/request --header \"Authorization: Bearer ${access_token}\"";
 }
 
-# Cross-compile distributed-llama binaries on Velaryon
-function goldentooth:build_distributed_llama() {
-  echo "🔨 Building distributed-llama binaries via cross-compilation...";
-  goldentooth:enter_ansible || return 1;
-  ansible-playbook "playbooks/setup_distributed_llama.yaml" --limit velaryon --tags "cross_compile,build";
-  popd > /dev/null;
-}
-
 # Run distributed LLaMA inference with specified prompt
 function goldentooth:dllama_inference() {
   local prompt="${1:-Hello, world!}";
-  local steps="${2:-10}";
-  local model="${3:-llama3_2_1b_instruct_q40}";
-  
-  echo "🧠 Running distributed inference on Pi cluster...";
+  local max_tokens="${2:-15}";
+
+  echo "🧠 Running distributed inference via API server...";
   echo "   Prompt: ${prompt}";
-  echo "   Steps: ${steps}";
-  echo "   Model: ${model}";
-  
-  # Build worker list from inventory
-  local workers="allyrion:9999,bettley:9999,cargyll:9999,dalt:9999,erenford:9999,fenn:9999,gardener:9999,harlton:9999,inchfield:9999,jast:9999,karstark:9999,lipps:9999,norcross:9999,oakheart:9999,payne:9999";
-  
-  goldentooth exec manderly "cd /mnt/shared/llm-models/distributed-llama && sudo -u dllama dllama inference --model models/${model}/dllama_model_${model}.m --tokenizer models/${model}/dllama_tokenizer_${model}.t --buffer-float-type q80 --nthreads 4 --prompt '${prompt}' --steps ${steps} --workers ${workers}";
-}
+  echo "   Max tokens: ${max_tokens}";
 
-# Check distributed-llama worker status across the cluster
-function goldentooth:dllama_status() {
-  echo "📊 Checking distributed-llama worker status across cluster...";
-  goldentooth exec all "systemctl is-active dllama-worker || echo 'Service not active'";
-  echo "";
-  echo "📋 Worker logs (last 5 lines):";
-  goldentooth exec all "tail -n 5 /opt/distributed-llama/logs/worker.log 2>/dev/null || echo 'No worker logs'";
-}
-
-# Stop all distributed-llama services
-function goldentooth:dllama_stop() {
-  echo "🛑 Stopping distributed-llama services across cluster...";
-  goldentooth exec all "sudo systemctl stop dllama-worker dllama-root dllama-api 2>/dev/null || true";
-}
-
-# Start distributed-llama worker services 
-function goldentooth:dllama_start_workers() {
-  echo "▶️  Starting distributed-llama worker services...";
-  goldentooth exec all "sudo systemctl start dllama-worker";
-}
-
-# Download and convert a model for distributed-llama
-function goldentooth:dllama_download_model() {
-  : "${1?"Usage: ${FUNCNAME[0]} <MODEL_NAME> (e.g., meta-llama/Llama-3.2-1B)"}";
-  local model_name="${1}";
-  local root_node="bettley";
-  echo "📥 Downloading and converting model: ${model_name}";
-  echo "⚠️  This may take significant time and disk space";
-  read -p "Continue? (y/N) " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    goldentooth shell "${root_node}"  # Then: cd /mnt/shared/llm-models && python3 -m distributed_llama.convert --model '${model_name}' --output-dir . || echo 'Model conversion failed - ensure distributed-llama Python tools are installed'
-  else
-    echo "Model download cancelled.";
-  fi
-}
-
-# List available and downloaded models
-function goldentooth:dllama_list_models() {
-  echo "📋 Available models for download:";
-  echo "   llama3_1_8b_instruct_q40    (6.3GB - Llama 3.1 8B)";
-  echo "   llama3_1_405b_instruct_q40  (238GB - Llama 3.1 405B)";
-  echo "   llama3_2_1b_instruct_q40    (1.7GB - Llama 3.2 1B)";
-  echo "   llama3_2_3b_instruct_q40    (3.4GB - Llama 3.2 3B)";
-  echo "   qwen3_0_6b_q40              (0.9GB - Qwen3 0.6B)";
-  echo "   qwen3_1_7b_q40              (2.2GB - Qwen3 1.7B)";
-  echo "   qwen3_8b_q40                (6.7GB - Qwen3 8B)";
-  echo "   qwen3_14b_q40               (10.9GB - Qwen3 14B)";
-  echo "";
-  echo "📁 Downloaded models:";
-  goldentooth exec manderly "ls -la /mnt/shared/llm-models/distributed-llama/models/ 2>/dev/null | grep -E '^d' | awk '{print \"   \" \$NF}' || echo '   (none)'";
+  # Make HTTP API request to distributed-llama API server
+  curl -s -X POST "http://manderly:18473/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"messages\": [
+        {\"role\": \"user\", \"content\": \"${prompt}\"}
+      ],
+      \"max_tokens\": ${max_tokens},
+      \"temperature\": 0.7
+    }" | jq -r '.choices[0].message.content // "Error: Unable to get response"'
 }
 
 # Quick inference with preset configurations
-function goldentooth:dllama_quick() {
+function goldentooth:dllama() {
   local preset="${1}";
   local prompt="${2}";
-  
+
   if [ -z "${preset}" ] || [ -z "${prompt}" ]; then
     echo "🚀 Quick inference presets:";
     echo "   fast    - Quick 15 token response (Llama 3.2 1B)";
-    echo "   normal  - Standard 25 token response (Llama 3.2 1B)";  
+    echo "   normal  - Standard 25 token response (Llama 3.2 1B)";
     echo "   long    - Extended 50 token response (Llama 3.2 1B)";
     echo "";
-    echo "Usage: goldentooth dllama_quick <preset> '<prompt>'";
-    echo "Example: goldentooth dllama_quick fast 'What is AI?'";
+    echo "Usage: goldentooth dllama <preset> '<prompt>'";
+    echo "Example: goldentooth dllama fast 'What is AI?'";
     return 1;
   fi;
-  
+
   case "${preset}" in
     "fast")
-      goldentooth:dllama_inference "${prompt}" "15" "llama3_2_1b_instruct_q40";
+      goldentooth:dllama_inference "${prompt}" "15";
       ;;
     "normal")
-      goldentooth:dllama_inference "${prompt}" "25" "llama3_2_1b_instruct_q40";
+      goldentooth:dllama_inference "${prompt}" "25";
       ;;
-    "long") 
-      goldentooth:dllama_inference "${prompt}" "50" "llama3_2_1b_instruct_q40";
+    "long")
+      goldentooth:dllama_inference "${prompt}" "50";
       ;;
     *)
       echo "❌ Unknown preset: ${preset}";
@@ -449,13 +392,13 @@ function goldentooth:exec() {
   local hosts="$1"
   local command="$2"
   local parallel_mode="${3:-false}"
-  
+
   # SSH options for clean output (disable pseudo-terminal to suppress MOTD)
   local ssh_opts="-T -o StrictHostKeyChecking=no -o LogLevel=ERROR -q"
-  
+
   # Convert hosts string to array
   read -ra host_array <<< "$hosts"
-  
+
   if [[ "${#host_array[@]}" -eq 1 ]]; then
     # Single host - direct SSH
     local host="${host_array[0]}"
@@ -468,7 +411,7 @@ function goldentooth:exec() {
     else
       # Sequential execution
       for host in "${host_array[@]}"; do
-        echo "${host}:" 
+        echo "${host}:"
         ssh ${ssh_opts} "root@${host}" "$command"
       done
     fi
@@ -482,7 +425,7 @@ function goldentooth:exec() {
 function goldentooth:shell() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOST_EXPRESSION> (e.g., bettley, all, consul_server)"}";
   local target="${1}";
-  
+
   # Resolve target to actual hosts
   local hosts
   if type goldentooth:resolve_hosts >/dev/null 2>&1; then
@@ -490,33 +433,33 @@ function goldentooth:shell() {
   else
     hosts="$target"  # Fallback to direct host name
   fi
-  
+
   # Convert to array and check count
   read -ra host_array <<< "$hosts"
   local host_count="${#host_array[@]}"
-  
+
   if [[ "$host_count" -eq 1 ]]; then
     local host="${host_array[0]}"
     echo "Connecting to ${host}..."
-    
+
     # Direct SSH session (interactive, bypass profile to skip MOTD)
     ssh -t -o StrictHostKeyChecking=no -o LogLevel=ERROR -q "root@${host}" "bash --noprofile"
-    
+
   elif [[ "$host_count" -gt 1 ]]; then
     echo "Interactive shell for ${host_count} hosts: ${host_array[*]}"
     echo "Commands will execute on all ${host_count} hosts. Type 'exit' to return."
     echo "WARNING: Broadcast mode - commands run on ALL selected hosts!"
     echo
-    
+
     while true; do
       read -p "[${target}:${host_count}]$ " -e command
-      
+
       # Exit condition
       [[ "$command" == "exit" ]] && break
-      
+
       # Skip empty commands
       [[ -z "$command" ]] && continue
-      
+
       goldentooth:exec "$hosts" "$command" "true"
     done
   else
@@ -529,7 +472,7 @@ function goldentooth:shell() {
 function goldentooth:pipe() {
   : "${1?"Usage: echo 'commands' | ${FUNCNAME[0]} <HOST_EXPRESSION>"}";
   local target="${1}";
-  
+
   # Resolve target to actual hosts
   local hosts
   if type goldentooth:resolve_hosts >/dev/null 2>&1; then
@@ -537,14 +480,14 @@ function goldentooth:pipe() {
   else
     hosts="$target"
   fi
-  
+
   read -ra host_array <<< "$hosts"
-  
+
   # Read from stdin and execute each line
   while IFS= read -r command; do
     [[ -z "$command" ]] && continue
     [[ "$command" =~ ^[[:space:]]*# ]] && continue  # Skip comments
-    
+
     goldentooth:ssh_exec "$hosts" "$command" "true"  # Use parallel for efficiency
   done
 }
@@ -555,7 +498,7 @@ function goldentooth:cp() {
   : "${2?"Usage: ${FUNCNAME[0]} <source> <destination> (supports node:path syntax)"}";
   local source="${1}";
   local destination="${2}";
-  
+
   # Parse node:path format
   if [[ "$source" =~ ^([^:]+):(.+)$ ]]; then
     local source_node="${BASH_REMATCH[1]}";
@@ -579,12 +522,12 @@ function goldentooth:batch() {
   : "${1?"Usage: ${FUNCNAME[0]} <script-file> [target=all]"}";
   local script_file="${1}";
   local target="${2:-all}";
-  
+
   if [[ ! -f "$script_file" ]]; then
     echo "Script file not found: $script_file" >&2;
     return 1;
   fi
-  
+
   # Resolve target to actual hosts
   local hosts
   if type goldentooth:resolve_hosts >/dev/null 2>&1; then
@@ -592,22 +535,22 @@ function goldentooth:batch() {
   else
     hosts="$target"
   fi
-  
+
   # Read script file and execute commands
   while IFS= read -r command || [[ -n "$command" ]]; do
     # Skip empty lines and comments
     [[ -z "$command" ]] && continue
     [[ "$command" =~ ^[[:space:]]*# ]] && continue
-    
+
     goldentooth:ssh_exec "$hosts" "$command" "true"  # Use parallel
   done < "$script_file"
 }
 
-# Here-document execution for multi-line commands (SSH-based)  
+# Here-document execution for multi-line commands (SSH-based)
 function goldentooth:heredoc() {
   : "${1?"Usage: ${FUNCNAME[0]} <HOST_EXPRESSION> <<'EOF' ... EOF"}";
   local target="${1}";
-  
+
   # Resolve target to actual hosts
   local hosts
   if type goldentooth:resolve_hosts >/dev/null 2>&1; then
@@ -615,14 +558,14 @@ function goldentooth:heredoc() {
   else
     hosts="$target"
   fi
-  
+
   # Create a temporary script from stdin
   local temp_script=$(mktemp);
   cat > "$temp_script"
-  
+
   # Execute the temporary script
   goldentooth:batch "$temp_script" "$target"
-  
+
   # Clean up
   rm -f "$temp_script"
 }
@@ -658,7 +601,6 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["ansible_playbook"]="Run a specified Ansible playbook."
   ["test"]="Run cluster health tests."
   ["usage"]="Display usage information."
-  ["build_distributed_llama"]="Cross-compile distributed-llama binaries on Velaryon."
   ["dllama_inference"]="Run distributed LLaMA inference with a prompt."
   ["dllama_status"]="Check distributed-llama worker status across cluster."
   ["dllama_stop"]="Stop all distributed-llama services."
