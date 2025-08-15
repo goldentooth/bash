@@ -43,15 +43,6 @@ function goldentooth:resolve_hosts() {
     "consul_server")
       echo "erenford fenn gardener"
       ;;
-    "distributed_llama")
-      echo "allyrion bettley cargyll dalt erenford fenn gardener harlton inchfield jast karstark lipps manderly norcross oakheart payne"
-      ;;
-    "distributed_llama_root")
-      echo "manderly"
-      ;;
-    "distributed_llama_worker")
-      echo "allyrion bettley cargyll dalt erenford fenn gardener harlton inchfield jast karstark lipps norcross oakheart payne"
-      ;;
     "docker")
       echo "allyrion"
       ;;
@@ -155,9 +146,6 @@ function goldentooth:list_groups() {
   echo "  consul: 17 hosts"
   echo "  consul_client: 14 hosts"
   echo "  consul_server: 3 hosts"
-  echo "  distributed_llama: 16 hosts"
-  echo "  distributed_llama_root: 1 hosts"
-  echo "  distributed_llama_worker: 15 hosts"
   echo "  docker: 1 hosts"
   echo "  envoy: 1 hosts"
   echo "  grafana: 1 hosts"
@@ -208,9 +196,6 @@ function goldentooth:is_group() {
     "consul") return 0 ;;
     "consul_client") return 0 ;;
     "consul_server") return 0 ;;
-    "distributed_llama") return 0 ;;
-    "distributed_llama_root") return 0 ;;
-    "distributed_llama_worker") return 0 ;;
     "docker") return 0 ;;
     "envoy") return 0 ;;
     "grafana") return 0 ;;

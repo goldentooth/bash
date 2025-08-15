@@ -332,60 +332,6 @@ function goldentooth:mcp_auth() {
   echo "claude mcp add --transport http goldentooth_mcp ${mcp_endpoint}/mcp/request --header \"Authorization: Bearer ${access_token}\"";
 }
 
-# Run distributed LLaMA inference with specified prompt
-function goldentooth:dllama_inference() {
-  local prompt="${1:-Hello, world!}";
-  local max_tokens="${2:-15}";
-
-  echo "🧠 Running distributed inference via API server...";
-  echo "   Prompt: ${prompt}";
-  echo "   Max tokens: ${max_tokens}";
-
-  # Make HTTP API request to distributed-llama API server
-  curl -s -X POST "http://manderly:18473/v1/chat/completions" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"messages\": [
-        {\"role\": \"user\", \"content\": \"${prompt}\"}
-      ],
-      \"max_tokens\": ${max_tokens},
-      \"temperature\": 0.7
-    }" | jq -r '.choices[0].message.content // "Error: Unable to get response"'
-}
-
-# Quick inference with preset configurations
-function goldentooth:dllama() {
-  local preset="${1}";
-  local prompt="${2}";
-
-  if [ -z "${preset}" ] || [ -z "${prompt}" ]; then
-    echo "🚀 Quick inference presets:";
-    echo "   fast    - Quick 15 token response (Llama 3.2 1B)";
-    echo "   normal  - Standard 25 token response (Llama 3.2 1B)";
-    echo "   long    - Extended 50 token response (Llama 3.2 1B)";
-    echo "";
-    echo "Usage: goldentooth dllama <preset> '<prompt>'";
-    echo "Example: goldentooth dllama fast 'What is AI?'";
-    return 1;
-  fi;
-
-  case "${preset}" in
-    "fast")
-      goldentooth:dllama_inference "${prompt}" "15";
-      ;;
-    "normal")
-      goldentooth:dllama_inference "${prompt}" "25";
-      ;;
-    "long")
-      goldentooth:dllama_inference "${prompt}" "50";
-      ;;
-    *)
-      echo "❌ Unknown preset: ${preset}";
-      echo "Available presets: fast, normal, long";
-      return 1;
-      ;;
-  esac
-}
 
 # Execute SSH command on resolved hosts
 function goldentooth:exec() {
@@ -601,13 +547,6 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["ansible_playbook"]="Run a specified Ansible playbook."
   ["test"]="Run cluster health tests."
   ["usage"]="Display usage information."
-  ["dllama_inference"]="Run distributed LLaMA inference with a prompt."
-  ["dllama_status"]="Check distributed-llama worker status across cluster."
-  ["dllama_stop"]="Stop all distributed-llama services."
-  ["dllama_start_workers"]="Start distributed-llama worker services."
-  ["dllama_download_model"]="Download and convert a model for distributed-llama."
-  ["dllama_list_models"]="List available and downloaded models."
-  ["dllama_quick"]="Quick inference with preset configurations."
   ["shell"]="Start interactive shell for cluster nodes."
   ["set_motd"]="Set node-specific MOTD with ASCII art."
   ["pipe"]="Pipe commands from stdin to cluster nodes."
