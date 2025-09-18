@@ -70,9 +70,6 @@ function goldentooth:resolve_hosts() {
     "loki")
       echo "inchfield"
       ;;
-    "mcp_server")
-      echo "allyrion bettley cargyll dalt erenford fenn gardener harlton inchfield jast karstark lipps manderly norcross oakheart payne velaryon"
-      ;;
     "nfs_server")
       echo "allyrion velaryon"
       ;;
@@ -87,6 +84,9 @@ function goldentooth:resolve_hosts() {
       ;;
     "nomad_server")
       echo "erenford fenn gardener"
+      ;;
+    "ollama")
+      echo "velaryon"
       ;;
     "prometheus")
       echo "allyrion"
@@ -155,12 +155,12 @@ function goldentooth:list_groups() {
   echo "  k8s_worker: 13 hosts"
   echo "  k8s_worker_gpu: 1 hosts"
   echo "  loki: 1 hosts"
-  echo "  mcp_server: 17 hosts"
   echo "  nfs_server: 2 hosts"
   echo "  nomad: 13 hosts"
   echo "  nomad_client: 13 hosts"
   echo "  nomad_client_gpu: 1 hosts"
   echo "  nomad_server: 3 hosts"
+  echo "  ollama: 1 hosts"
   echo "  prometheus: 1 hosts"
   echo "  ray: 17 hosts"
   echo "  ray_head: 1 hosts"
@@ -205,12 +205,12 @@ function goldentooth:is_group() {
     "k8s_worker") return 0 ;;
     "k8s_worker_gpu") return 0 ;;
     "loki") return 0 ;;
-    "mcp_server") return 0 ;;
     "nfs_server") return 0 ;;
     "nomad") return 0 ;;
     "nomad_client") return 0 ;;
     "nomad_client_gpu") return 0 ;;
     "nomad_server") return 0 ;;
+    "ollama") return 0 ;;
     "prometheus") return 0 ;;
     "ray") return 0 ;;
     "ray_head") return 0 ;;
