@@ -237,100 +237,6 @@ function goldentooth:set_vault() {
   popd > /dev/null;
 }
 
-# Get MCP authentication token via Authelia OIDC flow.
-function goldentooth:mcp_auth() {
-  local mcp_endpoint="https://mcp.services.goldentooth.net";
-
-  echo "Getting MCP authentication token...";
-  echo "";
-
-  # Check for required tools
-  if ! command -v curl &> /dev/null; then
-    echo "Error: curl is required but not installed.";
-    return 1;
-  fi;
-
-  if ! command -v jq &> /dev/null; then
-    echo "Error: jq is required but not installed.";
-    return 1;
-  fi;
-
-  # Get authorization URL
-  echo "Step 1: Getting authorization URL...";
-  local auth_response=$(curl -s -X POST "${mcp_endpoint}/auth/authorize" \
-    -H "Content-Type: application/json" \
-    -d '{}' -k);
-
-  if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to connect to MCP server. Is it running?";
-    return 1;
-  fi;
-
-  local auth_url=$(echo "${auth_response}" | jq -r '.authorization_url // empty');
-
-  if [[ -z "${auth_url}" || "${auth_url}" == "null" ]]; then
-    echo "Error: Failed to get authorization URL.";
-    echo "Response: ${auth_response}";
-    return 1;
-  fi;
-
-  # Display authorization URL
-  echo "";
-  echo "Step 2: Open this URL in your browser and log in:";
-  echo "${auth_url}";
-  echo "";
-  echo "After logging in, you'll be redirected to a URL that looks like:";
-  echo "https://mcp.services.goldentooth.net/callback?code=AUTHORIZATION_CODE";
-  echo "";
-
-  # Get authorization code from user
-  read -p "Copy the 'code' parameter from the redirect URL and paste it here: " auth_code;
-
-  if [[ -z "${auth_code}" ]]; then
-    echo "Error: No authorization code provided.";
-    return 1;
-  fi;
-
-  # Exchange code for token
-  echo "";
-  echo "Step 3: Exchanging authorization code for access token...";
-  local token_response=$(curl -s -X POST "${mcp_endpoint}/auth/token" \
-    -H "Content-Type: application/json" \
-    -d "{\"code\": \"${auth_code}\"}" -k);
-
-  if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to exchange authorization code for token.";
-    return 1;
-  fi;
-
-  local access_token=$(echo "${token_response}" | jq -r '.access_token // empty');
-  local expires_in=$(echo "${token_response}" | jq -r '.expires_in // empty');
-
-  if [[ -z "${access_token}" || "${access_token}" == "null" ]]; then
-    echo "Error: Failed to get access token.";
-    echo "Response: ${token_response}";
-    return 1;
-  fi;
-
-  # Display results
-  echo "";
-  echo "✅ Success! Your JWT access token:";
-  echo "${access_token}";
-  echo "";
-
-  if [[ -n "${expires_in}" && "${expires_in}" != "null" ]]; then
-    echo "Token expires in: ${expires_in} seconds";
-    echo "";
-  fi;
-
-  echo "To use with Claude Code:";
-  echo "";
-  echo "claude mcp add --transport http goldentooth_mcp ${mcp_endpoint}/mcp/request --header \"Authorization: Bearer ${access_token}\"";
-  echo "";
-  echo "If you need to remove and re-add the server:";
-  echo "claude mcp remove goldentooth_mcp";
-  echo "claude mcp add --transport http goldentooth_mcp ${mcp_endpoint}/mcp/request --header \"Authorization: Bearer ${access_token}\"";
-}
 
 
 # Execute SSH command on resolved hosts
@@ -539,7 +445,6 @@ declare -A GOLDENTOOTH_COMMANDS=(
   ["view_vault"]="View the vault contents."
   ["get_vault"]="Get a specific value from the vault."
   ["set_vault"]="Set a specific value in the vault."
-  ["mcp_auth"]="Get MCP authentication token via Authelia OIDC flow."
   ["agent"]="Run the Goldentooth Agent command."
   ["debug_var"]="Debug a variable on the specified hosts."
   ["debug_msg"]="Debug a message on the specified hosts."
